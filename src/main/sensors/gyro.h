@@ -23,6 +23,7 @@
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/time.h"
+#include "common/linkedlist.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/bus.h"
@@ -108,12 +109,13 @@ typedef struct gyro_s {
     biquadFilter_t notchFilter2[XYZ_AXIS_COUNT];
 
     filterApplyFnPtr notchFilterDynApplyFn;
-    filterApplyFnPtr notchFilterDynApplyFn2;
-    biquadFilter_t notchFilterDyn[XYZ_AXIS_COUNT];
-    biquadFilter_t notchFilterDyn2[XYZ_AXIS_COUNT];
+    linkedList_t notchFilterDyn[XYZ_AXIS_COUNT]; // list of biquadFilter_t
 
 #ifdef USE_GYRO_DATA_ANALYSE
     gyroAnalyseState_t gyroAnalyseState;
+    uint8_t notchFilterDynCount;
+    float notchFilterDynQ;
+
 #endif
 
     uint16_t accSampleRateHz;
@@ -196,7 +198,7 @@ typedef struct gyroConfig_s {
     uint16_t dyn_lpf_gyro_max_hz;
 
     uint16_t dyn_notch_max_hz;
-    uint8_t  dyn_notch_width_percent;
+    uint8_t  dyn_notch_count;
     uint16_t dyn_notch_q;
     uint16_t dyn_notch_min_hz;
 

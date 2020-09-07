@@ -1770,8 +1770,8 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 #endif
         // Added in MSP API 1.42
 #if defined(USE_GYRO_DATA_ANALYSE)
-        sbufWriteU8(dst, 0); // DEPRECATED 1.43: dyn_notch_range
-        sbufWriteU8(dst, gyroConfig()->dyn_notch_width_percent);
+        sbufWriteU8(dst, 0); // DEPRECATED 1.43: dyn_notch_range // TODO: use it for dyn_notch_mode
+        sbufWriteU8(dst, gyroConfig()->dyn_notch_count);
         sbufWriteU16(dst, gyroConfig()->dyn_notch_q);
         sbufWriteU16(dst, gyroConfig()->dyn_notch_min_hz);
 #else
@@ -2636,7 +2636,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             // Added in MSP API 1.42
 #if defined(USE_GYRO_DATA_ANALYSE)
             sbufReadU8(src); // DEPRECATED: dyn_notch_range
-            gyroConfigMutable()->dyn_notch_width_percent = sbufReadU8(src);
+            gyroConfigMutable()->dyn_notch_count = sbufReadU8(src);
             gyroConfigMutable()->dyn_notch_q = sbufReadU16(src);
             gyroConfigMutable()->dyn_notch_min_hz = sbufReadU16(src);
 #else

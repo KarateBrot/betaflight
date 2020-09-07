@@ -20,9 +20,12 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include "arm_math.h"
 
 #include "common/filter.h"
+#include "common/linkedlist.h"
 
 #define FFT_WINDOW_SIZE 32
 
@@ -42,11 +45,13 @@ typedef struct gyroAnalyseState_s {
     uint8_t updateStep;
     uint8_t updateAxis;
 
-    arm_rfft_fast_instance_f32 fftInstance;
-    float fftData[FFT_WINDOW_SIZE];
-    float rfftData[FFT_WINDOW_SIZE];
+	// container for arbitrary number of peak frequencies on all axes
+	linkedList_t centerFreq[XYZ_AXIS_COUNT]; // list of float
 
-    float centerFreq[XYZ_AXIS_COUNT];
+	// state for updating dynamic notch filters of current axis
+	bool filterUpdate;
+	uint8_t filterUpdateCount;
+	float filterBandwidth;
 
 } gyroAnalyseState_t;
 
@@ -54,6 +59,7 @@ STATIC_ASSERT(FFT_WINDOW_SIZE <= (uint8_t) -1, window_size_greater_than_underlyi
 
 void gyroDataAnalyseStateInit(gyroAnalyseState_t *state, uint32_t targetLooptimeUs);
 void gyroDataAnalysePush(gyroAnalyseState_t *state, const int axis, const float sample);
-void gyroDataAnalyse(gyroAnalyseState_t *state, biquadFilter_t *notchFilterDyn, biquadFilter_t *notchFilterDyn2);
+void gyroDataAnalyse(gyroAnalyseState_t *state);
+
 uint16_t getMaxFFT(void);
 void resetMaxFFT(void);

@@ -98,7 +98,7 @@ STATIC_UNIT_TESTED gyroDev_t * const gyroDevPtr = &gyro.gyroSensor1.gyroDev;
 #define GYRO_OVERFLOW_TRIGGER_THRESHOLD 31980  // 97.5% full scale (1950dps for 2000dps gyro)
 #define GYRO_OVERFLOW_RESET_THRESHOLD 30340    // 92.5% full scale (1850dps for 2000dps gyro)
 
-PG_REGISTER_WITH_RESET_FN(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 8);
+PG_REGISTER_WITH_RESET_FN(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 9);
 
 #ifndef GYRO_CONFIG_USE_GYRO_DEFAULT
 #define GYRO_CONFIG_USE_GYRO_DEFAULT GYRO_CONFIG_USE_GYRO_1
@@ -129,8 +129,8 @@ void pgResetFn_gyroConfig(gyroConfig_t *gyroConfig)
     gyroConfig->dyn_lpf_gyro_min_hz = DYN_LPF_GYRO_MIN_HZ_DEFAULT;
     gyroConfig->dyn_lpf_gyro_max_hz = DYN_LPF_GYRO_MAX_HZ_DEFAULT;
     gyroConfig->dyn_notch_max_hz = 600;
-    gyroConfig->dyn_notch_width_percent = 8;
-    gyroConfig->dyn_notch_q = 120;
+    gyroConfig->dyn_notch_count = 3;
+    gyroConfig->dyn_notch_q = 250;
     gyroConfig->dyn_notch_min_hz = 150;
     gyroConfig->gyro_filter_debug_axis = FD_ROLL;
     gyroConfig->dyn_lpf_curve_expo = 5;
@@ -141,7 +141,7 @@ void pgResetFn_gyroConfig(gyroConfig_t *gyroConfig)
 #ifdef USE_GYRO_DATA_ANALYSE
 bool isDynamicFilterActive(void)
 {
-    return featureIsEnabled(FEATURE_DYNAMIC_FILTER);
+    return featureIsEnabled(FEATURE_DYNAMIC_FILTER) && gyro.notchFilterDynCount;
 }
 #endif
 
@@ -484,7 +484,19 @@ FAST_CODE void gyroFiltering(timeUs_t currentTimeUs)
 
 #ifdef USE_GYRO_DATA_ANALYSE
     if (isDynamicFilterActive()) {
-        gyroDataAnalyse(&gyro.gyroAnalyseState, gyro.notchFilterDyn, gyro.notchFilterDyn2);
+		gyroDataAnalyse(&gyro.gyroAnalyseState);
+
+		// Update dynamic notch filters if new data is available
+		if (gyro.gyroAnalyseState.filterUpdate) {
+			gyroAnalyseState_t *state = &gyro.gyroAnalyseState;
+			const uint8_t axis = (state->updateAxis + 2) % 3; // previous axis (which got updated in gyroDataAnalyse())
+			for (uint8_t i = 0; i < state->filterUpdateCount; i++) {
+				biquadFilter_t *notch = (biquadFilter_t *)linkedListFind(&gyro.notchFilterDyn[axis], i)->data;
+				const float centerFreq = linkedListGetFloat(&state->centerFreq[axis], i);				
+				const float dynamicQ = centerFreq / state->filterBandwidth;
+				biquadFilterUpdate(notch, centerFreq, gyro.targetLooptime, dynamicQ, FILTER_NOTCH);
+			}
+		}
     }
 #endif
 

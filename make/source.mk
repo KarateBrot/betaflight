@@ -225,6 +225,7 @@ ifneq ($(TARGET),$(filter $(TARGET),$(F1_TARGETS)))
 SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
             common/encoding.c \
             common/filter.c \
+            common/linkedlist.c \
             common/maths.c \
             common/typeconversion.c \
             drivers/accgyro/accgyro_mpu.c \
@@ -406,6 +407,7 @@ SRC += $(DSP_LIB)/Source/CommonTables/arm_common_tables.c
 
 SRC += $(DSP_LIB)/Source/ComplexMathFunctions/arm_cmplx_mag_f32.c
 SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_max_f32.c
+SRC += $(DSP_LIB)/Source/StatisticsFunctions/arm_rms_f32.c
 
 SRC += $(wildcard $(DSP_LIB)/Source/*/*.S)
 endif
