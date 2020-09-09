@@ -144,6 +144,7 @@ void gyroDataAnalyseStateInit(gyroAnalyseState_t *state, uint32_t targetLooptime
 {
     // initialise even if FEATURE_DYNAMIC_FILTER not set, since it may be set later
     gyroDataAnalyseInit(targetLooptimeUs);
+
     state->maxSampleCount = samples;
     state->maxSampleCountRcp = 1.0f / state->maxSampleCount;
 
@@ -152,11 +153,20 @@ void gyroDataAnalyseStateInit(gyroAnalyseState_t *state, uint32_t targetLooptime
 	state->filterMaxCount = gyroConfig()->dyn_notch_count;
 
 	for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+
 		linkedListInit(&state->centerFreq[axis], sizeof(float));
-		for (uint8_t n = 0; n < state->filterMaxCount; n++) {
+		linkedListInit(&state->notches[axis], sizeof(biquadFilter_t)); // Initialize notch list of current axis
+
+		for (uint8_t i = 0; i < state->filterMaxCount; i++) {
+
+			biquadFilter_t notch;
 			// any init value is fine, but evenly spreading centerFreq's over frequency range makes them stabilize quicker
-			const float initFreq = (n + 0.5f) * (dynNotchMaxHz - dynNotchMinHz) / (float)state->filterMaxCount + dynNotchMinHz;
+			const float initFreq = (i + 0.5f) * (dynNotchMaxHz - dynNotchMinHz) / (float)state->filterMaxCount + dynNotchMinHz;
+			const float initNotchQ = initFreq / state->filterBandwidthHz;
+			biquadFilterInit(&notch, initFreq, targetLooptimeUs, initNotchQ, FILTER_NOTCH);
+			
 			linkedListPushBackFloat(&state->centerFreq[axis], initFreq);
+			linkedListPushBack(&state->notches[axis], (void *)&notch); // Insert copies of notch into list
 		}
 	}
 }
@@ -354,6 +364,7 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
 				
 				biquadFilterUpdate(notch, centerFreq, gyro.targetLooptime, dynamicQ, FILTER_NOTCH);
 			}
+
 			state->updateAxis = (state->updateAxis + 1) % XYZ_AXIS_COUNT;
 
 			DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
