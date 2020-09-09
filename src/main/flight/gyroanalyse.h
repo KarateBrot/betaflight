@@ -47,11 +47,12 @@ typedef struct gyroAnalyseState_s {
 
 	// container for arbitrary number of peak frequencies on all axes
 	linkedList_t centerFreq[XYZ_AXIS_COUNT]; // list of float
+	linkedList_t notches[XYZ_AXIS_COUNT]; // list of biquadFilter_t
 
 	// state for updating dynamic notch filters of current axis
-	bool filterUpdate;
-	uint8_t filterUpdateCount;
-	float filterBandwidth;
+	uint8_t filterMaxCount;
+	uint8_t filterUpdateCount[XYZ_AXIS_COUNT];
+	float filterBandwidthHz;
 
 } gyroAnalyseState_t;
 
@@ -60,6 +61,7 @@ STATIC_ASSERT(FFT_WINDOW_SIZE <= (uint8_t) -1, window_size_greater_than_underlyi
 void gyroDataAnalyseStateInit(gyroAnalyseState_t *state, uint32_t targetLooptimeUs);
 void gyroDataAnalysePush(gyroAnalyseState_t *state, const int axis, const float sample);
 void gyroDataAnalyse(gyroAnalyseState_t *state);
+float gyroDataAnalyseFilter(gyroAnalyseState_t *state, const uint8_t axis, float data);
 
 uint16_t getMaxFFT(void);
 void resetMaxFFT(void);

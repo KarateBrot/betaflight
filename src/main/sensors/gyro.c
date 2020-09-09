@@ -141,7 +141,7 @@ void pgResetFn_gyroConfig(gyroConfig_t *gyroConfig)
 #ifdef USE_GYRO_DATA_ANALYSE
 bool isDynamicFilterActive(void)
 {
-    return featureIsEnabled(FEATURE_DYNAMIC_FILTER) && gyro.notchFilterDynCount;
+    return featureIsEnabled(FEATURE_DYNAMIC_FILTER) && gyro.gyroAnalyseState.filterMaxCount;
 }
 #endif
 
@@ -485,18 +485,6 @@ FAST_CODE void gyroFiltering(timeUs_t currentTimeUs)
 #ifdef USE_GYRO_DATA_ANALYSE
     if (isDynamicFilterActive()) {
 		gyroDataAnalyse(&gyro.gyroAnalyseState);
-
-		// Update dynamic notch filters if new data is available
-		if (gyro.gyroAnalyseState.filterUpdate) {
-			gyroAnalyseState_t *state = &gyro.gyroAnalyseState;
-			const uint8_t axis = (state->updateAxis + 2) % 3; // previous axis (which got updated in gyroDataAnalyse())
-			for (uint8_t i = 0; i < state->filterUpdateCount; i++) {
-				biquadFilter_t *notch = (biquadFilter_t *)linkedListFind(&gyro.notchFilterDyn[axis], i)->data;
-				const float centerFreq = linkedListGetFloat(&state->centerFreq[axis], i);				
-				const float dynamicQ = centerFreq / state->filterBandwidth;
-				biquadFilterUpdate(notch, centerFreq, gyro.targetLooptime, dynamicQ, FILTER_NOTCH);
-			}
-		}
     }
 #endif
 

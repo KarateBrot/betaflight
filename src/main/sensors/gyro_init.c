@@ -132,18 +132,18 @@ static void gyroInitFilterNotch2(uint16_t notchHz, uint16_t notchCutoffHz)
 #ifdef USE_GYRO_DATA_ANALYSE
 static void gyroInitFilterDynamicNotch()
 {
-    gyro.notchFilterDynApplyFn = nullFilterApply;
-
     if (isDynamicFilterActive()) {
-        gyro.notchFilterDynApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
 		
-		biquadFilter_t notch;
-		biquadFilterInit(&notch, DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, gyro.targetLooptime, gyro.notchFilterDynQ, FILTER_NOTCH);
+		gyroAnalyseState_t *state = &gyro.gyroAnalyseState;
+		const float initQ = DYNAMIC_NOTCH_DEFAULT_CENTER_HZ / gyro.gyroAnalyseState.filterBandwidthHz;
         
+		biquadFilter_t notch;
+		biquadFilterInit(&notch, DYNAMIC_NOTCH_DEFAULT_CENTER_HZ, gyro.targetLooptime, initQ, FILTER_NOTCH);
+
 		for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-			linkedList_t *notchList = &gyro.notchFilterDyn[axis];
-			linkedListInit(notchList, sizeof(biquadFilter_t)); // Initialize notchFilterDyn of current axis
-			for (uint8_t i = 0; i < gyro.notchFilterDynCount; i++) {
+			linkedList_t *notchList = &state->notches[axis];
+			linkedListInit(notchList, sizeof(biquadFilter_t)); // Initialize notch list of current axis
+			for (uint8_t i = 0; i < state->filterMaxCount; i++) {
                 linkedListPushBack(notchList, (void *)&notch); // Insert copies of notch into list
             }
         }
@@ -261,8 +261,6 @@ void gyroInitFilters(void)
     gyroInitFilterNotch1(gyroConfig()->gyro_soft_notch_hz_1, gyroConfig()->gyro_soft_notch_cutoff_1);
     gyroInitFilterNotch2(gyroConfig()->gyro_soft_notch_hz_2, gyroConfig()->gyro_soft_notch_cutoff_2);
 #ifdef USE_GYRO_DATA_ANALYSE
-    gyro.notchFilterDynQ = gyroConfig()->dyn_notch_q / 100.0f;
-    gyro.notchFilterDynCount = gyroConfig()->dyn_notch_count;
     gyroDataAnalyseStateInit(&gyro.gyroAnalyseState, gyro.targetLooptime);
     gyroInitFilterDynamicNotch();
 #endif

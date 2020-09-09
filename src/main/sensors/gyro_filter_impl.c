@@ -82,10 +82,7 @@ static FAST_CODE void GYRO_FILTER_FUNCTION_NAME(void)
                 GYRO_FILTER_DEBUG_SET(DEBUG_DYN_LPF, 3, lrintf(gyroADCf));
             }
             gyroDataAnalysePush(&gyro.gyroAnalyseState, axis, gyroADCf);
-			for (uint8_t i = 0; i < gyro.notchFilterDynCount; i++) {
-				filter_t *notch = (filter_t *)linkedListFind(&gyro.notchFilterDyn[axis], i)->data;
-				gyroADCf = gyro.notchFilterDynApplyFn(notch, gyroADCf);
-			}
+			gyroADCf = gyroDataAnalyseFilter(&gyro.gyroAnalyseState, axis, gyroADCf);
         }
 #endif
 

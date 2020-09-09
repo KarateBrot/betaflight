@@ -147,15 +147,17 @@ void gyroDataAnalyseStateInit(gyroAnalyseState_t *state, uint32_t targetLooptime
     state->maxSampleCount = samples;
     state->maxSampleCountRcp = 1.0f / state->maxSampleCount;
 
+	// bandwidth of dynamic notch filters will be kept constant => notchQ = centerFreq / bandwidth
+	state->filterBandwidthHz = (gyroConfig()->dyn_notch_q / 100.0f) * fftResolution;
+	state->filterMaxCount = gyroConfig()->dyn_notch_count;
+
 	for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
 		linkedListInit(&state->centerFreq[axis], sizeof(float));
-		for (uint8_t n = 0; n < gyro.notchFilterDynCount; n++) {
+		for (uint8_t n = 0; n < state->filterMaxCount; n++) {
 			// any init value is fine, but evenly spreading centerFreq's over frequency range makes them stabilize quicker
-			const float initFreq = (n + 0.5f) * (dynNotchMaxHz - dynNotchMinHz) / (float)gyro.notchFilterDynCount + dynNotchMinHz;
+			const float initFreq = (n + 0.5f) * (dynNotchMaxHz - dynNotchMinHz) / (float)state->filterMaxCount + dynNotchMinHz;
 			linkedListPushBackFloat(&state->centerFreq[axis], initFreq);
 		}
-		// bandwidth of dynamic notch filters will be kept constant => notchQ = centerFreq / bandwidth
-		state->filterBandwidth = gyro.notchFilterDynQ * fftResolution;
 	}
 }
 
@@ -171,9 +173,6 @@ static void gyroDataAnalyseUpdate(gyroAnalyseState_t *state);
  */
 FAST_CODE void gyroDataAnalyse(gyroAnalyseState_t *state)
 {
-   	// Once there is new data ready this will get set to true in gyroDataAnalyseUpdate()
-	state->filterUpdate = false;
-
     // samples should have been pushed by `gyroDataAnalysePush`
     // if gyro sampling is > 1kHz, accumulate and average multiple gyro samples
     state->sampleCount++;
@@ -230,6 +229,7 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
         STEP_ARM_CMPLX_MAG_F32,
         STEP_DETECT_PEAKS,
         STEP_UPDATE_FREQUENCIES,
+		STEP_UPDATE_FILTER,
         STEP_WINDOW,
         STEP_COUNT
     };
@@ -261,15 +261,16 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             }
             DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
 
-            break;
+			state->updateStep++;
+			FALLTHROUGH;
         }
         case STEP_BITREVERSAL:
         {
             // 6us
             arm_bitreversal_32((uint32_t *)fftData, Sint->bitRevLength, Sint->pBitRevTable);
             DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
-            state->updateStep++;
-            FALLTHROUGH;
+
+			break;
         }
         case STEP_STAGE_RFFT_F32:
         {
@@ -278,15 +279,16 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             stage_rfft_f32(&fftInstance, fftData, rfftData);
             DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
 
-            break;
+			state->updateStep++;
+			FALLTHROUGH;
         }
         case STEP_ARM_CMPLX_MAG_F32:
         {
             // 8us
             arm_cmplx_mag_f32(rfftData, fftData, FFT_BIN_COUNT);
             DEBUG_SET(DEBUG_FFT_TIME, 2, micros() - startTime);
-            state->updateStep++;
-            FALLTHROUGH;
+
+			break;
         }
         case STEP_DETECT_PEAKS:
         {
@@ -297,7 +299,7 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
 			// 6us@F722
 			// Get FFT peaks of current axis
 			getPeaksFFT(fftData, &fftPeaks, fftRms);
-			state->filterUpdateCount = MIN(fftPeaks.size, gyro.notchFilterDynCount);
+			state->filterUpdateCount[state->updateAxis] = MIN(fftPeaks.size, state->filterMaxCount);
 
 			// --us@F722
 			// Get n biggest peaks in ascending bin order
@@ -305,13 +307,14 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
 
 			DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
 
-			break;
+			state->updateStep++;
+			FALLTHROUGH;
         }
         case STEP_UPDATE_FREQUENCIES:
         {
 			// --us@F722
 			// Update notch center frequencies for current axis
-			for (uint8_t i = 0; i < state->filterUpdateCount; i++) {
+			for (uint8_t i = 0; i < state->filterUpdateCount[state->updateAxis]; i++) {
 
 				// Pointer to current notch center frequency
 				float *centerFreq = (float *)linkedListFind(&state->centerFreq[state->updateAxis], i)->data;
@@ -331,23 +334,33 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
 
 			if (state->updateAxis == 0) {
 				// DEBUG_SET(DEBUG_FFT, 3, lrintf(fftMeanIndex * 100));
-				for (uint8_t i = 0; i < state->filterUpdateCount && i < 3; i++) {
+				for (uint8_t i = 0; i < state->filterUpdateCount[state->updateAxis] && i < 3; i++) {
 					DEBUG_SET(DEBUG_FFT_FREQ, (i + 1), lrintf(linkedListGetFloat(&state->centerFreq[state->updateAxis], i)));
 				}
 				// DEBUG_SET(DEBUG_FFT_FREQ, 2, lrintf(dynamicFactor));
 				// DEBUG_SET(DEBUG_DYN_LPF, 1, state->centerFreq[state->updateAxis]);
 			}
-
-			// If set to true, dynamic notch filters for current axis will get updated in gyro.c once
-			state->filterUpdate = true;
-
-            state->updateAxis = (state->updateAxis + 1) % XYZ_AXIS_COUNT;
-            state->updateStep++;
-            
 			DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
             
-            FALLTHROUGH;
+			break;
         }
+		case STEP_UPDATE_FILTER:
+		{
+			for (uint8_t i = 0; i < state->filterUpdateCount[state->updateAxis]; i++) {
+
+				biquadFilter_t *notch = (biquadFilter_t *)linkedListFind(&state->notches[state->updateAxis], i)->data;
+				const float centerFreq = linkedListGetFloat(&state->centerFreq[state->updateAxis], i);
+				const float dynamicQ = centerFreq / state->filterBandwidthHz;
+				
+				biquadFilterUpdate(notch, centerFreq, gyro.targetLooptime, dynamicQ, FILTER_NOTCH);
+			}
+			state->updateAxis = (state->updateAxis + 1) % XYZ_AXIS_COUNT;
+
+			DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
+
+			state->updateStep++;
+			FALLTHROUGH;
+		}
         case STEP_WINDOW:
         {
             // 5us
@@ -357,7 +370,6 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             if (state->circularBufferIdx > 0) {
                 arm_mult_f32(&state->downsampledGyroData[state->updateAxis][0], &window[ringBufIdx], &fftData[ringBufIdx], state->circularBufferIdx);
             }
-
             DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
         }
     }
@@ -365,12 +377,21 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
     state->updateStep = (state->updateStep + 1) % STEP_COUNT;
 }
 
+float gyroDataAnalyseFilter(gyroAnalyseState_t *state, const uint8_t axis, float data)
+{
+	for (uint8_t i = 0; i < state->filterMaxCount; i++) {
+		biquadFilter_t *notch = (biquadFilter_t *)linkedListFind(&state->notches[axis], i)->data;
+		data = biquadFilterApplyDF1(notch, data); // must be this function, not DF2
+	}
+	return data;
+}
+
 static FAST_CODE void getPeaksFFT(float *fftData, linkedList_t *peaks, const float noise)
 {
 	// Get list ready for insertion
 	linkedListClear(peaks);
 
-	// Search for peaks and pits
+	// Search for peaks
 	for (uint8_t bin = fftStartBin; bin < (FFT_BIN_COUNT - 1); bin++) {
 
 		if (peaks != NULL) {
@@ -380,7 +401,7 @@ static FAST_CODE void getPeaksFFT(float *fftData, linkedList_t *peaks, const flo
 				if (significant) {
 					linkedListPushBackInt8(peaks, bin);
 				}
-				bin++; // If bin is peak, next bin can't be peak
+				bin++; // If bin is peak, next bin can't be peak => jump it
 			}
 		}
 	}

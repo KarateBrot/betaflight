@@ -108,14 +108,8 @@ typedef struct gyro_s {
     filterApplyFnPtr notchFilter2ApplyFn;
     biquadFilter_t notchFilter2[XYZ_AXIS_COUNT];
 
-    filterApplyFnPtr notchFilterDynApplyFn;
-    linkedList_t notchFilterDyn[XYZ_AXIS_COUNT]; // list of biquadFilter_t
-
 #ifdef USE_GYRO_DATA_ANALYSE
     gyroAnalyseState_t gyroAnalyseState;
-    uint8_t notchFilterDynCount;
-    float notchFilterDynQ;
-
 #endif
 
     uint16_t accSampleRateHz;
