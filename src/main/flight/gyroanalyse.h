@@ -28,6 +28,7 @@
 #include "common/linkedlist.h"
 
 #define FFT_WINDOW_SIZE 32
+#define DYN_NOTCH_DTERM 1
 
 typedef struct gyroAnalyseState_s {
     // accumulator for oversampled data => no aliasing and less noise
@@ -45,7 +46,7 @@ typedef struct gyroAnalyseState_s {
     uint8_t updateStep;
     uint8_t updateAxis;
 
-	// container for arbitrary number of peak frequencies on all axes
+	// containers for arbitrary number of peak frequencies and notch filters on all axes
 	linkedList_t centerFreq[XYZ_AXIS_COUNT]; // list of float
 	linkedList_t notches[XYZ_AXIS_COUNT]; // list of biquadFilter_t
 

@@ -83,7 +83,7 @@
 // Each FFT output bin has width fftSamplingRateHz/32, ie 41.65Hz per bin at 1333Hz
 // Usable bandwidth is half this, ie 666Hz if fftSamplingRateHz is 1333Hz, i.e. bin 1 is 41.65hz, bin 2 83.3hz etc
 
-#define DYN_NOTCH_SMOOTH_HZ        4
+#define DYN_NOTCH_SMOOTH_HZ        1
 #define FFT_BIN_COUNT              (FFT_WINDOW_SIZE / 2) // 16  // TODO: Zero-padding -> doubling FFT resolution
 #define DYN_NOTCH_CALC_TICKS       (XYZ_AXIS_COUNT * 4) // 4 steps per axis
 #define DYN_NOTCH_OSD_MIN_THROTTLE 20
@@ -93,6 +93,7 @@ static FAST_DATA_ZERO_INIT float        fftData[FFT_WINDOW_SIZE];
 static FAST_DATA_ZERO_INIT float        rfftData[FFT_WINDOW_SIZE];
 static FAST_DATA_ZERO_INIT float        fftRms;
 static FAST_DATA_ZERO_INIT linkedList_t fftPeaks; // list of uint8_t
+static FAST_DATA_ZERO_INIT uint32_t     targetLooptime;
 static FAST_DATA_ZERO_INIT uint16_t     fftSamplingRateHz;
 static FAST_DATA_ZERO_INIT float        fftResolution;
 static FAST_DATA_ZERO_INIT uint8_t      fftStartBin;
@@ -116,13 +117,15 @@ void gyroDataAnalyseInit(uint32_t targetLooptimeUs)
 	arm_rfft_fast_init_f32(&fftInstance, FFT_WINDOW_SIZE);
 	linkedListInit(&fftPeaks, sizeof(uint8_t));
 
+	targetLooptime = targetLooptimeUs;
+
     dynNotchMinHz = gyroConfig()->dyn_notch_min_hz;
     dynNotchMaxHz = MAX(2 * dynNotchMinHz, gyroConfig()->dyn_notch_max_hz);
 
-    const int gyroLoopRateHz = lrintf((1.0f / targetLooptimeUs) * 1e6f);
-    samples = MAX(1, gyroLoopRateHz / (2 * dynNotchMaxHz)); //600hz, 8k looptime, 13.333
+    const int loopRateHz = lrintf((1.0f / targetLooptime) * 1e6f);
+    samples = MAX(1, loopRateHz / (2 * dynNotchMaxHz)); //600hz, 8k looptime, 13.333
 
-    fftSamplingRateHz = gyroLoopRateHz / samples;
+    fftSamplingRateHz = loopRateHz / samples;
     // eg 8k, user max 600hz, int(8000/1200) = 6 (6.666), fftSamplingRateHz = 1333hz, range 666Hz
     // eg 4k, user max 600hz, int(4000/1200) = 3 (3.333), fftSamplingRateHz = 1333hz, range 666Hz
     // eg 2k, user max 600hz, int(2000/1200) = 1 (1.666) fftSamplingRateHz = 2000hz, range 1000Hz
@@ -132,7 +135,7 @@ void gyroDataAnalyseInit(uint32_t targetLooptimeUs)
 
     fftResolution = (float)fftSamplingRateHz / FFT_WINDOW_SIZE; // 41.65hz per bin for medium
     fftStartBin = MAX(2, lrintf(dynNotchMinHz / fftResolution)); // can't use bin 0 because it is DC.
-    smoothFactor = 2 * M_PIf * DYN_NOTCH_SMOOTH_HZ / (gyroLoopRateHz / 12); // minimum PT1 k value
+    smoothFactor = 2 * M_PIf * DYN_NOTCH_SMOOTH_HZ / (loopRateHz / 12); // minimum PT1 k value
 
 	// Periodic Hann-Window (best window for combination of small main lobe width and high sidelobe-falloff)
 	for (int i = 0; i < FFT_WINDOW_SIZE; i++) {
@@ -239,7 +242,7 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
         STEP_ARM_CMPLX_MAG_F32,
         STEP_DETECT_PEAKS,
         STEP_UPDATE_FREQUENCIES,
-		STEP_UPDATE_FILTER,
+		STEP_UPDATE_FILTERS,
         STEP_WINDOW,
         STEP_COUNT
     };
@@ -322,20 +325,20 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
         }
         case STEP_UPDATE_FREQUENCIES:
         {
-			// --us@F722
-			// Update notch center frequencies for current axis
 			for (uint8_t i = 0; i < state->filterUpdateCount[state->updateAxis]; i++) {
 
 				// Pointer to current notch center frequency
 				float *centerFreq = (float *)linkedListFind(&state->centerFreq[state->updateAxis], i)->data;
 
-				// 3us@F722
 				// Calculate frequency corresponding to current FFT peak bin (freq = bin*res)
 				const uint8_t peakBin = linkedListGetInt8(&fftPeaks, i);
 				const float peakFreq = getMeanBin(fftData, peakBin) * fftResolution;
+				
+				const float peakAmp = 
 
-				// PT1 style smoothing for updating notch center frequencies of current axis
-				*centerFreq += smoothFactor * (peakFreq - *centerFreq);
+				// PT1 style dynamic smoothing moves rapidly towards big peaks and slowly away, up to 8x faster
+				float dynamicFactor = constrainf(fftData[peakBin] / fftRms, 1.0f, 4.0f);
+				*centerFreq += smoothFactor * dynamicFactor * (peakFreq - *centerFreq);
 				
 				if (calculateThrottlePercentAbs() > DYN_NOTCH_OSD_MIN_THROTTLE) {
 					dynNotchMaxFFT = MAX(dynNotchMaxFFT, *centerFreq);
@@ -354,17 +357,14 @@ static FAST_CODE_NOINLINE void gyroDataAnalyseUpdate(gyroAnalyseState_t *state)
             
 			break;
         }
-		case STEP_UPDATE_FILTER:
+		case STEP_UPDATE_FILTERS:
 		{
 			for (uint8_t i = 0; i < state->filterUpdateCount[state->updateAxis]; i++) {
-
 				biquadFilter_t *notch = (biquadFilter_t *)linkedListFind(&state->notches[state->updateAxis], i)->data;
 				const float centerFreq = linkedListGetFloat(&state->centerFreq[state->updateAxis], i);
 				const float dynamicQ = centerFreq / state->filterBandwidthHz;
-				
-				biquadFilterUpdate(notch, centerFreq, gyro.targetLooptime, dynamicQ, FILTER_NOTCH);
+				biquadFilterUpdate(notch, centerFreq, targetLooptime, dynamicQ, FILTER_NOTCH);
 			}
-
 			state->updateAxis = (state->updateAxis + 1) % XYZ_AXIS_COUNT;
 
 			DEBUG_SET(DEBUG_FFT_TIME, 1, micros() - startTime);
@@ -403,7 +403,7 @@ static FAST_CODE void getPeaksFFT(float *fftData, linkedList_t *peaks, const flo
 	linkedListClear(peaks);
 
 	// Search for peaks
-	for (uint8_t bin = fftStartBin; bin < (FFT_BIN_COUNT - 1); bin++) {
+	for (uint8_t bin = fftStartBin; bin < FFT_BIN_COUNT; bin++) {
 
 		if (peaks != NULL) {
 			const bool maximum = (fftData[bin] > fftData[bin-1]) && (fftData[bin] > fftData[bin+1]);

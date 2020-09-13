@@ -38,6 +38,11 @@
 #include "fc/runtime_config.h"
 
 #include "flight/interpolated_setpoint.h"
+
+#ifdef USE_GYRO_DATA_ANALYSE
+#include "flight/gyroanalyse.h"
+#endif
+
 #include "flight/pid.h"
 #include "flight/rpm_filter.h"
 
@@ -218,6 +223,11 @@ void pidInit(const pidProfile_t *pidProfile)
     pidInitConfig(pidProfile);
 #ifdef USE_RPM_FILTER
     rpmFilterInit(rpmFilterConfig());
+#endif
+#ifdef USE_GYRO_DATA_ANALYSE
+	if (DYN_NOTCH_DTERM) {
+	    gyroDataAnalyseStateInit(&gyro.gyroAnalyseState, targetPidLooptime);
+	}
 #endif
 }
 

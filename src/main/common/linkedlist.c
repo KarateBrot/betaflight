@@ -78,10 +78,7 @@ node_t *delete_node(node_t *node)
 
 node_t *nodeIterator(node_t *node, int8_t steps)
 {
-	if (node == NULL)
-		return NULL;
-
-	if (steps == 0)
+	if (node == NULL || steps == 0)
 		return node;
 
 	if (steps > 0) {

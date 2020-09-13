@@ -46,6 +46,11 @@
 #include "fc/runtime_config.h"
 
 #include "flight/gps_rescue.h"
+
+#ifdef USE_GYRO_DATA_ANALYSE
+#include "flight/gyroanalyse.h"
+#endif
+
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/rpm_filter.h"
@@ -917,6 +922,12 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
     rpmFilterUpdate();
 #endif
 
+#ifdef USE_GYRO_DATA_ANALYSE
+	if (isDynamicFilterActive() && DYN_NOTCH_DTERM) {
+		gyroDataAnalyse(&gyro.gyroAnalyseState);
+	}
+#endif
+
 #ifdef USE_INTERPOLATED_SP
     bool newRcFrame = false;
     if (lastFrameNumber != getRcFrameNumber()) {
@@ -1059,6 +1070,17 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
             const float delta =
                 - (gyroRateDterm[axis] - previousGyroRateDterm[axis]) * pidRuntime.pidFrequency;
             float preTpaData = pidRuntime.pidCoefficient[axis].Kd * delta;
+
+#if defined(USE_GYRO_DATA_ANALYSE)
+			if (isDynamicFilterActive() && DYN_NOTCH_DTERM) {
+				if (axis == FD_ROLL) {
+					DEBUG_SET(DEBUG_FFT, 1, lrintf(preTpaData));
+					DEBUG_SET(DEBUG_FFT_FREQ, 0, lrintf(preTpaData));
+				}
+				gyroDataAnalysePush(&gyro.gyroAnalyseState, axis, preTpaData);
+				preTpaData = gyroDataAnalyseFilter(&gyro.gyroAnalyseState, axis, preTpaData);
+			}
+#endif
 
 #if defined(USE_ACC)
             if (cmpTimeUs(currentTimeUs, levelModeStartTimeUs) > CRASH_RECOVERY_DETECTION_DELAY_US) {

@@ -233,9 +233,13 @@ void gyroInitFilters(void)
 
     gyroInitFilterNotch1(gyroConfig()->gyro_soft_notch_hz_1, gyroConfig()->gyro_soft_notch_cutoff_1);
     gyroInitFilterNotch2(gyroConfig()->gyro_soft_notch_hz_2, gyroConfig()->gyro_soft_notch_cutoff_2);
+
 #ifdef USE_GYRO_DATA_ANALYSE
-	gyroDataAnalyseStateInit(&gyro.gyroAnalyseState, gyro.targetLooptime);
+	if (!DYN_NOTCH_DTERM) {
+		gyroDataAnalyseStateInit(&gyro.gyroAnalyseState, gyro.targetLooptime);
+}
 #endif
+
 #ifdef USE_DYN_LPF
     dynLpfFilterInit();
 #endif

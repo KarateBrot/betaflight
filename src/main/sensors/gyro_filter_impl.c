@@ -75,7 +75,7 @@ static FAST_CODE void GYRO_FILTER_FUNCTION_NAME(void)
         GYRO_FILTER_AXIS_DEBUG_SET(axis, DEBUG_GYRO_SAMPLE, 3, lrintf(gyroADCf));
 
 #ifdef USE_GYRO_DATA_ANALYSE
-        if (isDynamicFilterActive()) {
+        if (isDynamicFilterActive() && !DYN_NOTCH_DTERM) {
             if (axis == gyro.gyroDebugAxis) {
                 GYRO_FILTER_DEBUG_SET(DEBUG_FFT, 1, lrintf(gyroADCf));
                 GYRO_FILTER_DEBUG_SET(DEBUG_FFT_FREQ, 0, lrintf(gyroADCf));
