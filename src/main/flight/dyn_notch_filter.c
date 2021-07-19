@@ -121,6 +121,7 @@ typedef struct dynNotch_s {
     float minHz;
     float maxHz;
     int count;
+    int mode;
 
     uint16_t maxCenterFreq;
     float centerFreq[XYZ_AXIS_COUNT][DYN_NOTCH_COUNT_MAX];
@@ -162,6 +163,7 @@ void pgResetFn_dynNotchConfig(dynNotchConfig_t *config)
     config->dyn_notch_max_hz = 600;
     config->dyn_notch_q = 300;
     config->dyn_notch_count = 3;
+    config->dyn_notch_mode = DYN_NOTCH_MODE_GYRO;
 }
 
 void dynNotchInit(const dynNotchConfig_t *config, const uint32_t targetLooptimeUs)
@@ -173,6 +175,7 @@ void dynNotchInit(const dynNotchConfig_t *config, const uint32_t targetLooptimeU
     dynNotch.count = config->dyn_notch_count;
     dynNotch.looptimeUs = targetLooptimeUs;
     dynNotch.maxCenterFreq = 0;
+    dynNotch.mode = config->dyn_notch_mode;
 
     // dynNotchUpdate() is running at looprateHz (which is PID looprate aka. 1e6f / gyro.targetLooptime)
     const float looprateHz = 1.0f / dynNotch.looptimeUs * 1e6f;
@@ -390,10 +393,23 @@ static FAST_CODE_NOINLINE void dynNotchProcess(void)
     state.step = (state.step + 1) % STEP_COUNT;
 }
 
-FAST_CODE float dynNotchFilter(const int axis, float value) 
+FAST_CODE float dynNotchFilterGyro(const int axis, float value) 
 {
-    for (uint8_t p = 0; p < dynNotch.count; p++) {
-        value = biquadFilterApplyDF1(&dynNotch.notch[axis][p], value);
+    if (dynNotch.mode != DYN_NOTCH_MODE_DTERM) {
+        for (uint8_t p = 0; p < dynNotch.count; p++) {
+            value = biquadFilterApplyDF1(&dynNotch.notch[axis][p], value);
+        }
+    }
+
+    return value;
+}
+
+FAST_CODE float dynNotchFilterDterm(const int axis, float value)
+{
+    if (dynNotch.mode != DYN_NOTCH_MODE_GYRO) {
+        for (uint8_t p = 0; p < dynNotch.count; p++) {
+            value = biquadFilterApplyDF1(&dynNotch.notch[axis][p], value);
+        }
     }
 
     return value;

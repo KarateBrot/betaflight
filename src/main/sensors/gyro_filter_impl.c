@@ -73,7 +73,7 @@ static FAST_CODE void GYRO_FILTER_FUNCTION_NAME(void)
             }
 
             dynNotchPush(axis, gyroADCf);
-            gyroADCf = dynNotchFilter(axis, gyroADCf);
+            gyroADCf = dynNotchFilterGyro(axis, gyroADCf);
 
             if (axis == gyro.gyroDebugAxis) {
                 GYRO_FILTER_DEBUG_SET(DEBUG_FFT, 1, lrintf(gyroADCf));

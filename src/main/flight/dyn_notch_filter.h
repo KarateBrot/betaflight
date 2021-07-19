@@ -27,12 +27,22 @@
 
 #define DYN_NOTCH_COUNT_MAX 5
 
+typedef enum {
+
+    DYN_NOTCH_MODE_GYRO = 0,
+    DYN_NOTCH_MODE_DTERM,
+    DYN_NOTCH_MODE_BOTH,
+    DYN_NOTCH_MODE_COUNT
+
+} dynNotchMode_e;
+
 typedef struct dynNotchConfig_s
 {
     uint16_t dyn_notch_min_hz;
     uint16_t dyn_notch_max_hz;
     uint16_t dyn_notch_q;
     uint8_t  dyn_notch_count;
+    uint8_t  dyn_notch_mode;
 
 } dynNotchConfig_t;
 
@@ -41,7 +51,8 @@ PG_DECLARE(dynNotchConfig_t, dynNotchConfig);
 void dynNotchInit(const dynNotchConfig_t *config, const uint32_t targetLooptimeUs);
 void dynNotchPush(const int axis, const float sample);
 void dynNotchUpdate(void);
-float dynNotchFilter(const int axis, float value);
+float dynNotchFilterGyro(const int axis, float value);
+float dynNotchFilterDterm(const int axis, float value);
 bool isDynamicFilterActive(void);
 uint16_t getMaxFFT(void);
 void resetMaxFFT(void);

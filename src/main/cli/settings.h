@@ -141,6 +141,9 @@ typedef enum {
 #ifdef USE_OSD
     TABLE_CMS_BACKGROUND,
 #endif
+#ifdef USE_DYN_NOTCH_FILTER
+    TABLE_DYN_NOTCH_MODE,
+#endif
     LOOKUP_TABLE_COUNT
 } lookupTableIndex_e;
 

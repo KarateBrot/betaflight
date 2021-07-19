@@ -1043,6 +1043,12 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
                 - (gyroRateDterm[axis] - previousGyroRateDterm[axis]) * pidRuntime.pidFrequency;
             float preTpaData = pidRuntime.pidCoefficient[axis].Kd * delta;
 
+#if defined(USE_DYN_NOTCH_FILTER)
+            if (isDynamicFilterActive()) {
+                preTpaData = dynNotchFilterDterm(axis, preTpaData);
+            }
+#endif
+
 #if defined(USE_ACC)
             if (cmpTimeUs(currentTimeUs, levelModeStartTimeUs) > CRASH_RECOVERY_DETECTION_DELAY_US) {
                 detectAndSetCrashRecovery(pidProfile->crash_recovery, axis, currentTimeUs, delta, errorRate);
