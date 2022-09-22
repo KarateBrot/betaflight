@@ -62,8 +62,8 @@
 
 #define Q12 (1 << 12)
 
-#define HZ_TO_INTERVAL(x) (1.0f / (x))
-#define HZ_TO_INTERVAL_US(x) (1000000 / (x))
+#define HZ_TO_INTERVAL(x)       (1.0f / (x))
+#define HZ_TO_INTERVAL_US(x)    (HZ_TO_INTERVAL(x) * 1e6f)
 
 typedef int32_t fix12_t;
 

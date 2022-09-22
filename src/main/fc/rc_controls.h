@@ -101,8 +101,6 @@ typedef struct rcSmoothingFilter_s {
     uint8_t throttleCutoffSetting;
     uint16_t setpointCutoffFrequency;
     uint16_t throttleCutoffFrequency;
-    uint8_t ffCutoffSetting;
-    uint16_t feedforwardCutoffFrequency;
     int averageFrameTimeUs;
     rcSmoothingFilterTraining_t training;
     uint8_t debugAxis;

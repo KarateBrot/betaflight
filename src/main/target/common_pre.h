@@ -319,7 +319,6 @@ extern uint8_t _dmaram_end__;
 
 #if ((TARGET_FLASH_SIZE > 256 && !defined(FEATURE_CUT_LEVEL)) || (FEATURE_CUT_LEVEL < 6))
 #define USE_ITERM_RELAX
-#define USE_RC_SMOOTHING_FILTER
 #define USE_THRUST_LINEARIZATION
 #define USE_TPA_MODE
 #endif
@@ -403,8 +402,9 @@ extern uint8_t _dmaram_end__;
 #define USE_VTX_TABLE
 #define USE_PERSISTENT_STATS
 #define USE_PROFILE_NAMES
-#define USE_SERIALRX_SRXL2     // Spektrum SRXL2 protocol
+#define USE_SERIALRX_SRXL2      // Spektrum SRXL2 protocol
 #define USE_FEEDFORWARD
+#define USE_RC_SMOOTHING_FILTER // Feedforward needs RC smoothing
 #define USE_CUSTOM_BOX_NAMES
 #define USE_BATTERY_VOLTAGE_SAG_COMPENSATION
 #define USE_RX_MSP_OVERRIDE

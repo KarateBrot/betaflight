@@ -496,9 +496,9 @@ void tasksInit(void)
 #endif
 
     if (sensors(SENSOR_GYRO)) {
-        rescheduleTask(TASK_GYRO, gyro.sampleLooptime);
-        rescheduleTask(TASK_FILTER, gyro.targetLooptime);
-        rescheduleTask(TASK_PID, gyro.targetLooptime);
+        rescheduleTask(TASK_GYRO, gyro.sampleLooptimeUs);
+        rescheduleTask(TASK_FILTER, gyro.targetLooptimeUs);
+        rescheduleTask(TASK_PID, gyro.targetLooptimeUs);
         setTaskEnabled(TASK_GYRO, true);
         setTaskEnabled(TASK_FILTER, true);
         setTaskEnabled(TASK_PID, true);

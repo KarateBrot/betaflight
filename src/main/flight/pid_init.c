@@ -247,35 +247,13 @@ void pidInitFilters(const pidProfile_t *pidProfile)
 
 void pidInit(const pidProfile_t *pidProfile)
 {
-    pidSetTargetLooptime(gyro.targetLooptime); // Initialize pid looptime
+    pidSetTargetLooptime(gyro.targetLooptimeUs); // Initialize pid looptime
     pidInitFilters(pidProfile);
     pidInitConfig(pidProfile);
 #ifdef USE_RPM_FILTER
     rpmFilterInit(rpmFilterConfig());
 #endif
 }
-
-#ifdef USE_RC_SMOOTHING_FILTER
-void pidInitFeedforwardLpf(uint16_t filterCutoff, uint8_t debugAxis)
-{
-    pidRuntime.rcSmoothingDebugAxis = debugAxis;
-    if (filterCutoff > 0) {
-        pidRuntime.feedforwardLpfInitialized = true;
-        for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-            pt3FilterInit(&pidRuntime.feedforwardPt3[axis], pt3FilterGain(filterCutoff, pidRuntime.dT));
-        }
-    }
-}
-
-void pidUpdateFeedforwardLpf(uint16_t filterCutoff)
-{
-    if (filterCutoff > 0) {
-        for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-            pt3FilterUpdateCutoff(&pidRuntime.feedforwardPt3[axis], pt3FilterGain(filterCutoff, pidRuntime.dT));
-        }
-    }
-}
-#endif // USE_RC_SMOOTHING_FILTER
 
 void pidInitConfig(const pidProfile_t *pidProfile)
 {
@@ -419,14 +397,9 @@ void pidInitConfig(const pidProfile_t *pidProfile)
     } else {
         pidRuntime.feedforwardTransitionFactor = 100.0f / pidProfile->feedforward_transition;
     }
-    pidRuntime.feedforwardAveraging = pidProfile->feedforward_averaging;
-    pidRuntime.feedforwardSmoothFactor = 1.0f;
-    if (pidProfile->feedforward_smooth_factor) {
-        pidRuntime.feedforwardSmoothFactor = 1.0f - ((float)pidProfile->feedforward_smooth_factor) / 100.0f;
-    }
-    pidRuntime.feedforwardJitterFactor = pidProfile->feedforward_jitter_factor;
+    pidRuntime.feedforwardSmoothFactor = (float)pidProfile->feedforward_smooth_factor;
     pidRuntime.feedforwardBoostFactor = (float)pidProfile->feedforward_boost / 10.0f;
-    feedforwardInit(pidProfile);
+    feedforwardInit(pidProfile, gyro.targetLooptimeUs);
 #endif
 
     pidRuntime.levelRaceMode = pidProfile->level_race_mode;

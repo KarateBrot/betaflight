@@ -164,7 +164,7 @@ void dynNotchInit(const dynNotchConfig_t *config, const timeUs_t targetLooptimeU
     dynNotch.looptimeUs = targetLooptimeUs;
     dynNotch.maxCenterFreq = 0;
 
-    // dynNotchUpdate() is running at looprateHz (which is PID looprate aka. 1e6f / gyro.targetLooptime)
+    // dynNotchUpdate() is running at looprateHz (which is PID looprate aka. 1e6f / gyro.targetLooptimeUs)
     const float looprateHz = 1.0f / dynNotch.looptimeUs * 1e6f;
 
     // Disable dynamic notch if dynNotchUpdate() would run at less than 2kHz

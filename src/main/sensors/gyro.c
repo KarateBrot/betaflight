@@ -163,7 +163,7 @@ static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibrati
 
 static int32_t gyroCalculateCalibratingCycles(void)
 {
-    return (gyroConfig()->gyroCalibrationDuration * 10000) / gyro.sampleLooptime;
+    return (gyroConfig()->gyroCalibrationDuration * 10000) / gyro.sampleLooptimeUs;
 }
 
 static bool isOnFirstGyroCalibrationCycle(const gyroCalibration_t *gyroCalibration)
@@ -607,7 +607,7 @@ void dynLpfGyroUpdate(float throttle)
             cutoffFreq = fmaxf(dynThrottle(throttle) * gyro.dynLpfMax, gyro.dynLpfMin);
         }
         DEBUG_SET(DEBUG_DYN_LPF, 2, lrintf(cutoffFreq));
-        const float gyroDt = gyro.targetLooptime * 1e-6f;
+        const float gyroDt = gyro.targetLooptimeUs * 1e-6f;
         switch (gyro.dynLpfFilter) {
         case DYN_LPF_PT1:
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -616,7 +616,7 @@ void dynLpfGyroUpdate(float throttle)
             break;
         case DYN_LPF_BIQUAD:
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-                biquadFilterUpdateLPF(&gyro.lowpassFilter[axis].biquadFilterState, cutoffFreq, gyro.targetLooptime);
+                biquadFilterUpdateLPF(&gyro.lowpassFilter[axis].biquadFilterState, cutoffFreq, gyro.targetLooptimeUs);
             }
             break;
         case  DYN_LPF_PT2:

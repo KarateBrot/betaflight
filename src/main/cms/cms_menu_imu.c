@@ -525,9 +525,7 @@ static uint8_t cmsx_iterm_relax_cutoff;
 #ifdef USE_FEEDFORWARD
 static uint8_t cmsx_feedforward_transition;
 static uint8_t cmsx_feedforward_boost;
-static uint8_t cmsx_feedforward_averaging;
 static uint8_t cmsx_feedforward_smooth_factor;
-static uint8_t cmsx_feedforward_jitter_factor;
 #endif
 
 static const void *cmsx_profileOtherOnEnter(displayPort_t *pDisp)
@@ -566,10 +564,8 @@ static const void *cmsx_profileOtherOnEnter(displayPort_t *pDisp)
 
 #ifdef USE_FEEDFORWARD
     cmsx_feedforward_transition  = pidProfile->feedforward_transition;
-    cmsx_feedforward_averaging = pidProfile->feedforward_averaging;
     cmsx_feedforward_boost = pidProfile->feedforward_boost;
     cmsx_feedforward_smooth_factor = pidProfile->feedforward_smooth_factor;
-    cmsx_feedforward_jitter_factor = pidProfile->feedforward_jitter_factor;
 #endif
 
 #ifdef USE_BATTERY_VOLTAGE_SAG_COMPENSATION
@@ -615,10 +611,8 @@ static const void *cmsx_profileOtherOnExit(displayPort_t *pDisp, const OSD_Entry
 
 #ifdef USE_FEEDFORWARD
     pidProfile->feedforward_transition = cmsx_feedforward_transition;
-    pidProfile->feedforward_averaging = cmsx_feedforward_averaging;
     pidProfile->feedforward_boost = cmsx_feedforward_boost;
     pidProfile->feedforward_smooth_factor = cmsx_feedforward_smooth_factor;
-    pidProfile->feedforward_jitter_factor = cmsx_feedforward_jitter_factor;
 #endif
 
 #ifdef USE_BATTERY_VOLTAGE_SAG_COMPENSATION
@@ -634,9 +628,7 @@ static const OSD_Entry cmsx_menuProfileOtherEntries[] = {
 
 #ifdef USE_FEEDFORWARD
     { "FF TRANSITION", OME_FLOAT,  NULL, &(OSD_FLOAT_t)  { &cmsx_feedforward_transition,        0,    100,   1, 10 } },
-    { "FF AVERAGING",  OME_TAB,    NULL, &(OSD_TAB_t)    { &cmsx_feedforward_averaging,         4, lookupTableFeedforwardAveraging} },
     { "FF SMOOTHNESS", OME_UINT8,  NULL, &(OSD_UINT8_t)  { &cmsx_feedforward_smooth_factor,     0,     75,   1  }    },
-    { "FF JITTER",     OME_UINT8,  NULL, &(OSD_UINT8_t)  { &cmsx_feedforward_jitter_factor,     0,     20,   1  }    },
     { "FF BOOST",      OME_UINT8,  NULL, &(OSD_UINT8_t)  { &cmsx_feedforward_boost,             0,     50,   1  }    },
 #endif
     { "ANGLE STR",   OME_UINT8,  NULL, &(OSD_UINT8_t)  { &cmsx_angleStrength,          0,    200,   1  }    },

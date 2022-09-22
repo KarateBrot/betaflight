@@ -303,7 +303,7 @@ uint8_t __config_end = 0x10;
 uint16_t averageSystemLoadPercent = 0;
 
 timeDelta_t getTaskDeltaTimeUs(taskId_e){ return 0; }
-uint16_t currentRxRefreshRate = 9000;
+uint16_t currentRxLooptimeUs = 9000;
 armingDisableFlags_e getArmingDisableFlags(void) { return ARMING_DISABLED_NO_GYRO; }
 
 const char *armingDisableFlagNames[]= {
@@ -361,6 +361,6 @@ bool isModeActivationConditionConfigured(const modeActivationCondition_t *, cons
 void delay(uint32_t) {}
 displayPort_t *osdGetDisplayPort(osdDisplayPortDevice_e *) { return NULL; }
 mcuTypeId_e getMcuTypeId(void) { return MCU_TYPE_UNKNOWN; }
-uint16_t getCurrentRxRefreshRate(void) { return 0; }
+uint16_t getCurrentRxLooptimeUs(void) { return 0; }
 uint16_t getAverageSystemLoadPercent(void) { return 0; }
 }

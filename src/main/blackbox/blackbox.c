@@ -1321,7 +1321,7 @@ static bool blackboxWriteSysinfo(void)
             }
             );
 
-        BLACKBOX_PRINT_HEADER_LINE("looptime", "%d",                        gyro.sampleLooptime);
+        BLACKBOX_PRINT_HEADER_LINE("looptime", "%d",                        gyro.sampleLooptimeUs);
         BLACKBOX_PRINT_HEADER_LINE("gyro_sync_denom", "%d",                 1);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_PID_PROCESS_DENOM, "%d",      activePidLoopDenom);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_THR_MID, "%d",                currentControlRateProfile->thrMid8);
@@ -1395,9 +1395,7 @@ static bool blackboxWriteSysinfo(void)
                                                                             currentPidProfile->pid[PID_YAW].F);
 #ifdef USE_FEEDFORWARD
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_FEEDFORWARD_TRANSITION, "%d",     currentPidProfile->feedforward_transition);
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_FEEDFORWARD_AVERAGING, "%d",      currentPidProfile->feedforward_averaging);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_FEEDFORWARD_SMOOTH_FACTOR, "%d",  currentPidProfile->feedforward_smooth_factor);
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_FEEDFORWARD_JITTER_FACTOR, "%d",  currentPidProfile->feedforward_jitter_factor);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_FEEDFORWARD_BOOST, "%d",          currentPidProfile->feedforward_boost);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_FEEDFORWARD_MAX_RATE_LIMIT, "%d", currentPidProfile->feedforward_max_rate_limit);
 #endif
@@ -1472,12 +1470,10 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_AUTO_FACTOR, "%d",          rxConfig()->rc_smoothing_auto_factor_rpy);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_AUTO_FACTOR_THROTTLE, "%d", rxConfig()->rc_smoothing_auto_factor_throttle);
 
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_FEEDFORWARD_CUTOFF, "%d", rcSmoothingData->ffCutoffSetting);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_SETPOINT_CUTOFF, "%d",    rcSmoothingData->setpointCutoffSetting);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_THROTTLE_CUTOFF, "%d",    rcSmoothingData->throttleCutoffSetting);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_DEBUG_AXIS, "%d",         rcSmoothingData->debugAxis);
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_ACTIVE_CUTOFFS, "%d,%d,%d", rcSmoothingData->feedforwardCutoffFrequency,
-                                                                            rcSmoothingData->setpointCutoffFrequency,
+        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_ACTIVE_CUTOFFS, "%d,%d",  rcSmoothingData->setpointCutoffFrequency,
                                                                             rcSmoothingData->throttleCutoffFrequency);
         BLACKBOX_PRINT_HEADER_LINE("rc_smoothing_rx_average", "%d",         rcSmoothingData->averageFrameTimeUs);
 #endif // USE_RC_SMOOTHING_FILTER

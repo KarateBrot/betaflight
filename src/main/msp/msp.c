@@ -1592,7 +1592,7 @@ static bool mspProcessOutCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, sbuf_t
 #if defined(USE_RC_SMOOTHING_FILTER)
         sbufWriteU8(dst, 0); // not required in API 1.44, was rxConfig()->rc_smoothing_type
         sbufWriteU8(dst, rxConfig()->rc_smoothing_setpoint_cutoff);
-        sbufWriteU8(dst, rxConfig()->rc_smoothing_feedforward_cutoff);
+        sbufWriteU8(dst, 0); // not required in API 1.45, was rxConfig()->rc_smoothing_feedforward_cutoff
         sbufWriteU8(dst, 0); // not required in API 1.44, was rxConfig()->rc_smoothing_input_type
         sbufWriteU8(dst, 0); // not required in API 1.44, was rxConfig()->rc_smoothing_derivative_type
 #else
@@ -1992,11 +1992,11 @@ static bool mspProcessOutCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, sbuf_t
 #endif
         // Added in MSP API 1.44
 #if defined(USE_FEEDFORWARD)
-        sbufWriteU8(dst, currentPidProfile->feedforward_averaging);
+        sbufWriteU8(dst, 0); // was currentPidProfile->feedforward_averaging
         sbufWriteU8(dst, currentPidProfile->feedforward_smooth_factor);
         sbufWriteU8(dst, currentPidProfile->feedforward_boost);
         sbufWriteU8(dst, currentPidProfile->feedforward_max_rate_limit);
-        sbufWriteU8(dst, currentPidProfile->feedforward_jitter_factor);
+        sbufWriteU8(dst, 0); // was currentPidProfile->feedforward_jitter_factor
 #else
         sbufWriteU8(dst, 0);
         sbufWriteU8(dst, 0);
@@ -3111,11 +3111,11 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         if (sbufBytesRemaining(src) >= 7) {
             // Added in MSP API 1.44
 #if defined(USE_FEEDFORWARD)
-            currentPidProfile->feedforward_averaging = sbufReadU8(src);
+            sbufReadU8(src); // was currentPidProfile->feedforward_averaging
             currentPidProfile->feedforward_smooth_factor = sbufReadU8(src);
             currentPidProfile->feedforward_boost = sbufReadU8(src);
             currentPidProfile->feedforward_max_rate_limit = sbufReadU8(src);
-            currentPidProfile->feedforward_jitter_factor = sbufReadU8(src);
+            sbufReadU8(src); // was currentPidProfile->feedforward_jitter_factor
 #else
             sbufReadU8(src);
             sbufReadU8(src);
@@ -3585,7 +3585,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 #if defined(USE_RC_SMOOTHING_FILTER)
             sbufReadU8(src); // not required in API 1.44, was rc_smoothing_type
             configRebootUpdateCheckU8(&rxConfigMutable()->rc_smoothing_setpoint_cutoff, sbufReadU8(src));
-            configRebootUpdateCheckU8(&rxConfigMutable()->rc_smoothing_feedforward_cutoff, sbufReadU8(src));
+            sbufReadU8(src); // not required in API 1.45, was rc_smoothing_feedforward_cutoff
             sbufReadU8(src); // not required in API 1.44, was rc_smoothing_input_type
             sbufReadU8(src); // not required in API 1.44, was rc_smoothing_derivative_type
 #else

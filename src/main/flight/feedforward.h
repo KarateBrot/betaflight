@@ -23,9 +23,10 @@
 #include <stdint.h>
 
 #include "common/axis.h"
+#include "common/time.h"
 #include "flight/pid.h"
 
-void feedforwardInit(const pidProfile_t *pidProfile);
-float feedforwardApply(int axis, bool newRcFrame, feedforwardAveraging_t feedforwardAveraging);
+void feedforwardInit(const pidProfile_t *pidProfile, const timeUs_t targetLooptimeUs);
+float feedforwardApply(int axis);
 float applyFeedforwardLimit(int axis, float value, float Kp, float currentPidSetpoint);
 bool shouldApplyFeedforwardLimits(int axis);

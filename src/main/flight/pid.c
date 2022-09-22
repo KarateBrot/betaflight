@@ -117,7 +117,7 @@ PG_RESET_TEMPLATE(pidConfig_t, pidConfig,
 
 #define LAUNCH_CONTROL_YAW_ITERM_LIMIT 50 // yaw iterm windup limit when launch mode is "FULL" (all axes)
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(pidProfile_t, PID_PROFILE_COUNT, pidProfiles, PG_PID_PROFILE, 4);
+PG_REGISTER_ARRAY_WITH_RESET_FN(pidProfile_t, PID_PROFILE_COUNT, pidProfiles, PG_PID_PROFILE, 5);
 
 void resetPidProfile(pidProfile_t *pidProfile)
 {
@@ -197,10 +197,8 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .dyn_idle_i_gain = 50,
         .dyn_idle_d_gain = 50,
         .dyn_idle_max_increase = 150,
-        .feedforward_averaging = FEEDFORWARD_AVERAGING_OFF,
         .feedforward_max_rate_limit = 90,
         .feedforward_smooth_factor = 25,
-        .feedforward_jitter_factor = 7,
         .feedforward_boost = 15,
         .dterm_lpf1_dyn_expo = 5,
         .level_race_mode = false,
@@ -264,11 +262,6 @@ float pidGetFeedforwardTransitionFactor()
 float pidGetFeedforwardSmoothFactor()
 {
     return pidRuntime.feedforwardSmoothFactor;
-}
-
-float pidGetFeedforwardJitterFactor()
-{
-    return pidRuntime.feedforwardJitterFactor;
 }
 
 float pidGetFeedforwardBoostFactor()
@@ -655,23 +648,6 @@ STATIC_UNIT_TESTED void rotateItermAndAxisError()
     }
 }
 
-#ifdef USE_RC_SMOOTHING_FILTER
-float FAST_CODE applyRcSmoothingFeedforwardFilter(int axis, float pidSetpointDelta)
-{
-    float ret = pidSetpointDelta;
-    if (axis == pidRuntime.rcSmoothingDebugAxis) {
-        DEBUG_SET(DEBUG_RC_SMOOTHING, 1, lrintf(pidSetpointDelta * 100.0f));
-    }
-    if (pidRuntime.feedforwardLpfInitialized) {
-        ret = pt3FilterApply(&pidRuntime.feedforwardPt3[axis], pidSetpointDelta);
-        if (axis == pidRuntime.rcSmoothingDebugAxis) {
-            DEBUG_SET(DEBUG_RC_SMOOTHING, 2, lrintf(ret * 100.0f));
-        }
-    }
-    return ret;
-}
-#endif // USE_RC_SMOOTHING_FILTER
-
 #if defined(USE_ITERM_RELAX)
 #if defined(USE_ABSOLUTE_CONTROL)
 STATIC_UNIT_TESTED void applyAbsoluteControl(const int axis, const float gyroRate, float *currentPidSetpoint, float *itermErrorRate)
@@ -922,10 +898,6 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
     rpmFilterUpdate();
 #endif
 
-#ifdef USE_FEEDFORWARD
-    const bool newRcFrame = getShouldUpdateFeedforward();
-#endif
-
     // ----------PID controller----------
     for (int axis = FD_ROLL; axis <= FD_YAW; ++axis) {
 
@@ -1021,10 +993,10 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
 
         pidData[axis].I = constrainf(previousIterm + (Ki * axisDynCi + pidRuntime.itermAccelerator) * itermErrorRate, -pidRuntime.itermLimit, pidRuntime.itermLimit);
 
-        // -----calculate pidSetpointDelta
+        // -----calculate pidSetpointDelta (predicted setpoint change)
         float pidSetpointDelta = 0;
 #ifdef USE_FEEDFORWARD
-        pidSetpointDelta = feedforwardApply(axis, newRcFrame, pidRuntime.feedforwardAveraging);
+        pidSetpointDelta = feedforwardApply(axis);
 #endif
         pidRuntime.previousPidSetpoint[axis] = currentPidSetpoint;
 
@@ -1107,9 +1079,6 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
 #else
             pidData[axis].F = feedForward;
 #endif
-#ifdef USE_RC_SMOOTHING_FILTER
-            pidData[axis].F = applyRcSmoothingFeedforwardFilter(axis, pidData[axis].F);
-#endif // USE_RC_SMOOTHING_FILTER
         } else {
             pidData[axis].F = 0;
         }

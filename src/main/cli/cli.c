@@ -4862,7 +4862,7 @@ static void cliStatus(const char *cmdName, char *cmdline)
     // Run status
 
     const int gyroRate = getTaskDeltaTimeUs(TASK_GYRO) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTimeUs(TASK_GYRO)));
-    int rxRate = getCurrentRxRefreshRate();
+    int rxRate = getCurrentRxLooptimeUs();
     if (rxRate != 0) {
         rxRate = (int)(1000000.0f / ((float)rxRate));
     }
@@ -5038,12 +5038,6 @@ static void cliRcSmoothing(const char *cmdName, char *cmdline)
         }
         cliPrintf("# Active setpoint cutoff: %dhz ", rcSmoothingData->setpointCutoffFrequency);
         if (rcSmoothingData->setpointCutoffSetting) {
-            cliPrintLine("(manual)");
-        } else {
-            cliPrintLine("(auto)");
-        }
-        cliPrintf("# Active FF cutoff: %dhz ", rcSmoothingData->feedforwardCutoffFrequency);
-        if (rcSmoothingData->ffCutoffSetting) {
             cliPrintLine("(manual)");
         } else {
             cliPrintLine("(auto)");

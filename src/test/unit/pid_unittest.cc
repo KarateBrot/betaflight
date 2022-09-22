@@ -95,10 +95,8 @@ extern "C" {
         return value;
     }
     void feedforwardInit(const pidProfile_t) { }
-    float feedforwardApply(int axis, bool newRcFrame, feedforwardAveraging_t feedforwardAveraging)
+    float feedforwardApply(int axis)
     {
-        UNUSED(newRcFrame);
-        UNUSED(feedforwardAveraging);
         const float feedforwardTransitionFactor = pidGetFeedforwardTransitionFactor();
         float setpointDelta = simulatedSetpointRate[axis] - simulatedPrevSetpointRate[axis];
         setpointDelta *= feedforwardTransitionFactor > 0 ? MIN(1.0f, getRcDeflectionAbs(axis) * feedforwardTransitionFactor) : 1;
@@ -109,7 +107,6 @@ extern "C" {
         UNUSED(axis);
         return true;
     }
-    bool getShouldUpdateFeedforward() { return true; }
     void initRcProcessing(void) { }
 }
 
@@ -167,7 +164,7 @@ void setDefaultTestSettings(void) {
     pidProfile->launchControlGain = 40,
     pidProfile->level_race_mode = false,
 
-    gyro.targetLooptime = 8000;
+    gyro.targetLooptimeUs = 8000;
 }
 
 timeUs_t currentTestTime(void) {

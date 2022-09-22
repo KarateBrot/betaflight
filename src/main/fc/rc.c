@@ -60,19 +60,16 @@ typedef float (applyRatesFn)(const int axis, float rcCommandf, const float rcCom
 #ifdef USE_FEEDFORWARD
 static float oldRcCommand[XYZ_AXIS_COUNT];
 static bool isDuplicate[XYZ_AXIS_COUNT];
-float rcCommandDelta[XYZ_AXIS_COUNT];
 #endif
 static float rawSetpoint[XYZ_AXIS_COUNT];
 static float setpointRate[3], rcDeflection[3], rcDeflectionAbs[3];
 static bool reverseMotors = false;
 static applyRatesFn *applyRates;
-static uint16_t currentRxRefreshRate;
+static uint16_t currentRxLooptimeUs;
 static bool isRxDataNew = false;
 static bool isRxRateValid = false;
 static float rcCommandDivider = 500.0f;
 static float rcCommandYawDivider = 500.0f;
-
-static FAST_DATA_ZERO_INIT bool newRxDataForFF;
 
 enum {
     ROLL_FLAG = 1 << ROLL,
@@ -97,16 +94,6 @@ static float rcDeflectionSmoothed[3];
 
 #define RC_RX_RATE_MIN_US                       950   // 0.950ms to fit 1kHz without an issue
 #define RC_RX_RATE_MAX_US                       65500 // 65.5ms or 15.26hz
-
-bool getShouldUpdateFeedforward()
-// only used in pid.c, when feedforward is enabled, to initiate a new FF value
-{
-    const bool updateFf = newRxDataForFF;
-    if (newRxDataForFF == true){
-        newRxDataForFF = false;
-    }
-    return updateFf;
-}
 
 float getSetpointRate(int axis)
 {
@@ -135,11 +122,6 @@ float getRcDeflectionAbs(int axis)
 float getRawSetpoint(int axis)
 {
     return rawSetpoint[axis];
-}
-
-float getRcCommandDelta(int axis)
-{
-    return rcCommandDelta[axis];
 }
 
 bool getRxRateValid(void)
@@ -281,12 +263,12 @@ void updateRcRefreshRate(timeUs_t currentTimeUs)
 
     lastRxTimeUs = currentTimeUs;
     isRxRateValid = (frameDeltaUs >= RC_RX_RATE_MIN_US && frameDeltaUs <= RC_RX_RATE_MAX_US);
-    currentRxRefreshRate = constrain(frameDeltaUs, RC_RX_RATE_MIN_US, RC_RX_RATE_MAX_US);
+    currentRxLooptimeUs = constrain(frameDeltaUs, RC_RX_RATE_MIN_US, RC_RX_RATE_MAX_US);
 }
 
-uint16_t getCurrentRxRefreshRate(void)
+uint16_t getCurrentRxLooptimeUs(void)
 {
-    return currentRxRefreshRate;
+    return currentRxLooptimeUs;
 }
 
 #ifdef USE_RC_SMOOTHING_FILTER
@@ -344,17 +326,6 @@ FAST_CODE_NOINLINE void rcSmoothingSetFilterCutoffs(rcSmoothingFilter_t *smoothi
             }
         }
     }
-
-    // update or initialize the FF filter
-    oldCutoff = smoothingData->feedforwardCutoffFrequency;
-    if (rcSmoothingData.ffCutoffSetting == 0) {
-        smoothingData->feedforwardCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(smoothingData->averageFrameTimeUs, smoothingData->autoSmoothnessFactorSetpoint));
-    }
-    if (!smoothingData->filterInitialized) {
-        pidInitFeedforwardLpf(smoothingData->feedforwardCutoffFrequency, smoothingData->debugAxis);
-    } else if (smoothingData->feedforwardCutoffFrequency != oldCutoff) {
-        pidUpdateFeedforwardLpf(smoothingData->feedforwardCutoffFrequency);
-    }
 }
 
 FAST_CODE_NOINLINE void rcSmoothingResetAccumulation(rcSmoothingFilter_t *smoothingData)
@@ -390,7 +361,7 @@ static FAST_CODE bool rcSmoothingAccumulateSample(rcSmoothingFilter_t *smoothing
 FAST_CODE_NOINLINE bool rcSmoothingAutoCalculate(void)
 {
     // if any rc smoothing cutoff is 0 (auto) then we need to calculate cutoffs
-    if ((rcSmoothingData.setpointCutoffSetting == 0) || (rcSmoothingData.ffCutoffSetting == 0) || (rcSmoothingData.throttleCutoffSetting == 0)) {
+    if ((rcSmoothingData.setpointCutoffSetting == 0) || (rcSmoothingData.throttleCutoffSetting == 0)) {
         return true;
     }
     return false;
@@ -413,18 +384,9 @@ static FAST_CODE void processRcSmoothingFilter(void)
         rcSmoothingData.debugAxis = rxConfig()->rc_smoothing_debug_axis;
         rcSmoothingData.setpointCutoffSetting = rxConfig()->rc_smoothing_setpoint_cutoff;
         rcSmoothingData.throttleCutoffSetting = rxConfig()->rc_smoothing_throttle_cutoff;
-        rcSmoothingData.ffCutoffSetting = rxConfig()->rc_smoothing_feedforward_cutoff;
         rcSmoothingResetAccumulation(&rcSmoothingData);
         rcSmoothingData.setpointCutoffFrequency = rcSmoothingData.setpointCutoffSetting;
         rcSmoothingData.throttleCutoffFrequency = rcSmoothingData.throttleCutoffSetting;
-        if (rcSmoothingData.ffCutoffSetting == 0) {
-            // calculate and use an initial derivative cutoff until the RC interval is known
-            const float cutoffFactor = 1.5f / (1.0f + (rcSmoothingData.autoSmoothnessFactorSetpoint / 10.0f));
-            float ffCutoff = RC_SMOOTHING_FEEDFORWARD_INITIAL_HZ * cutoffFactor;
-            rcSmoothingData.feedforwardCutoffFrequency = lrintf(ffCutoff);
-        } else {
-            rcSmoothingData.feedforwardCutoffFrequency = rcSmoothingData.ffCutoffSetting;
-        }
 
         if (rxConfig()->rc_smoothing_mode) {
             calculateCutoffs = rcSmoothingAutoCalculate();
@@ -463,7 +425,7 @@ static FAST_CODE void processRcSmoothingFilter(void)
                         // During initial training process all samples.
                         // During retraining check samples to determine if they vary by more than the limit percentage.
                         if (rcSmoothingData.filterInitialized) {
-                            const float percentChange = (ABS(currentRxRefreshRate - rcSmoothingData.averageFrameTimeUs) / (float)rcSmoothingData.averageFrameTimeUs) * 100;
+                            const float percentChange = (ABS(currentRxLooptimeUs - rcSmoothingData.averageFrameTimeUs) / (float)rcSmoothingData.averageFrameTimeUs) * 100;
                             if (percentChange < RC_SMOOTHING_RX_RATE_CHANGE_PERCENT) {
                                 // We received a sample that wasn't more than the limit percent so reset the accumulation
                                 // During retraining we need a contiguous block of samples that are all significantly different than the current average
@@ -474,7 +436,7 @@ static FAST_CODE void processRcSmoothingFilter(void)
 
                         // accumlate the sample into the average
                         if (accumulateSample) {
-                            if (rcSmoothingAccumulateSample(&rcSmoothingData, currentRxRefreshRate)) {
+                            if (rcSmoothingAccumulateSample(&rcSmoothingData, currentRxLooptimeUs)) {
                                 // the required number of samples were collected so set the filter cutoffs, but only if smoothing is active
                                 if (rxConfig()->rc_smoothing_mode) {
                                     rcSmoothingSetFilterCutoffs(&rcSmoothingData);
@@ -492,10 +454,10 @@ static FAST_CODE void processRcSmoothingFilter(void)
             }
 
             // rx frame rate training blackbox debugging
-            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 0, currentRxRefreshRate);              // log each rx frame interval
-            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 1, rcSmoothingData.training.count);    // log the training step count
-            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 2, rcSmoothingData.averageFrameTimeUs);// the current calculated average
-            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 3, sampleState);                       // indicates whether guard time is active
+            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 0, currentRxLooptimeUs);                // log each rx frame interval
+            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 1, rcSmoothingData.training.count);     // log the training step count
+            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 2, rcSmoothingData.averageFrameTimeUs); // the current calculated average
+            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 3, sampleState);                        // indicates whether guard time is active
         }
         // Get new values to be smoothed
         for (int i = 0; i < PRIMARY_CHANNEL_COUNT; i++) {
@@ -541,12 +503,10 @@ static FAST_CODE void processRcSmoothingFilter(void)
 FAST_CODE void processRcCommand(void)
 {
     if (isRxDataNew) {
-        newRxDataForFF = true;
         for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
 
 #ifdef USE_FEEDFORWARD
             isDuplicate[axis] = (oldRcCommand[axis] == rcCommand[axis]);
-            rcCommandDelta[axis] = (rcCommand[axis] - oldRcCommand[axis]);
             oldRcCommand[axis] = rcCommand[axis];
 #endif
 
