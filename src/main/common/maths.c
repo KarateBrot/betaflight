@@ -31,6 +31,7 @@
 #include "maths.h"
 
 #if defined(FAST_MATH) || defined(VERY_FAST_MATH)
+
 #if defined(VERY_FAST_MATH)
 
 // http://lolengine.net/blog/2011/12/21/better-function-approximations
@@ -43,12 +44,15 @@
 #define sinPolyCoef5  8.312366210e-3f
 #define sinPolyCoef7 -1.849218155e-4f
 #define sinPolyCoef9  0
+
 #else
+
 #define sinPolyCoef3 -1.666665710e-1f                                          // Double: -1.666665709650470145824129400050267289858e-1
 #define sinPolyCoef5  8.333017292e-3f                                          // Double:  8.333017291562218127986291618761571373087e-3
 #define sinPolyCoef7 -1.980661520e-4f                                          // Double: -1.980661520135080504411629636078917643846e-4
 #define sinPolyCoef9  2.600054768e-6f                                          // Double:  2.600054767890361277123254766503271638682e-6
-#endif
+
+#endif // defined(VERY_FAST_MATH)
 
 float sin_approx(float x)
 {
@@ -81,7 +85,7 @@ float cos_approx(float x)
 
 // Initial implementation by Crashpilot1000 (https://github.com/Crashpilot1000/HarakiriWebstore1/blob/396715f73c6fcf859e0db0f34e12fe44bace6483/src/mw.c#L1292)
 // Polynomial coefficients by Andor (http://www.dsprelated.com/showthread/comp.dsp/21872-1.php) optimized by Ledvinap to save one multiplication
-// Max absolute error 0,000027 degree
+// Max absolute error 0.000027 degree
 // atan2_approx maximum absolute error = 7.152557e-07 rads (4.098114e-05 degree)
 float atan2_approx(float y, float x)
 {
@@ -175,38 +179,28 @@ float fapplyDeadband(const float value, const float deadband)
     return value >= 0 ? value - deadband : value + deadband;
 }
 
-void devClear(stdev_t *dev)
+void varianceClear(variance_t *var)
 {
-    dev->m_n = 0;
+    var->m_n = 0;
 }
 
-void devPush(stdev_t *dev, float x)
+void variancePush(variance_t *var, const float x)
 {
-    dev->m_n++;
-    if (dev->m_n == 1) {
-        dev->m_oldM = dev->m_newM = x;
-        dev->m_oldS = 0.0f;
+    var->m_n++;
+    if (var->m_n == 1) {
+        var->m_oldM = var->m_newM = x;
+        var->m_oldS = 0.0f;
     } else {
-        dev->m_newM = dev->m_oldM + (x - dev->m_oldM) / dev->m_n;
-        dev->m_newS = dev->m_oldS + (x - dev->m_oldM) * (x - dev->m_newM);
-        dev->m_oldM = dev->m_newM;
-        dev->m_oldS = dev->m_newS;
+        var->m_newM = var->m_oldM + (x - var->m_oldM) / var->m_n;
+        var->m_newS = var->m_oldS + (x - var->m_oldM) * (x - var->m_newM);
+        var->m_oldM = var->m_newM;
+        var->m_oldS = var->m_newS;
     }
 }
 
-float devVariance(stdev_t *dev)
+float varianceGet(const variance_t *var)
 {
-    return ((dev->m_n > 1) ? dev->m_newS / (dev->m_n - 1) : 0.0f);
-}
-
-float devStandardDeviation(stdev_t *dev)
-{
-    return sqrtf(devVariance(dev));
-}
-
-float degreesToRadians(int16_t degrees)
-{
-    return degrees * RAD;
+    return ((var->m_n > 1) ? var->m_newS / (var->m_n - 1) : 0.0f);
 }
 
 int scaleRange(int x, int srcFrom, int srcTo, int destFrom, int destTo)

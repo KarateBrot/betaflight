@@ -207,27 +207,27 @@ STATIC_UNIT_TESTED NOINLINE void performGyroCalibration(gyroSensor_t *gyroSensor
         // Reset g[axis] at start of calibration
         if (isOnFirstGyroCalibrationCycle(&gyroSensor->calibration)) {
             gyroSensor->calibration.sum[axis] = 0.0f;
-            devClear(&gyroSensor->calibration.var[axis]);
+            varianceClear(&gyroSensor->calibration.var[axis]);
             // gyroZero is set to zero until calibration complete
             gyroSensor->gyroDev.gyroZero[axis] = 0.0f;
         }
 
         // Sum up CALIBRATING_GYRO_TIME_US readings
         gyroSensor->calibration.sum[axis] += gyroSensor->gyroDev.gyroADCRaw[axis];
-        devPush(&gyroSensor->calibration.var[axis], gyroSensor->gyroDev.gyroADCRaw[axis]);
+        variancePush(&gyroSensor->calibration.var[axis], gyroSensor->gyroDev.gyroADCRaw[axis]);
 
         if (isOnFinalGyroCalibrationCycle(&gyroSensor->calibration)) {
-            const float stddev = devStandardDeviation(&gyroSensor->calibration.var[axis]);
+            const float stdDev = sqrtf(varianceGet(&gyroSensor->calibration.var[axis]));
             // DEBUG_GYRO_CALIBRATION_VALUE records the standard deviation of roll
             // into the spare field - debug[3], in DEBUG_GYRO_RAW
             if (axis == X) {
-                DEBUG_SET(DEBUG_GYRO_RAW, DEBUG_GYRO_CALIBRATION_VALUE, lrintf(stddev));
+                DEBUG_SET(DEBUG_GYRO_RAW, DEBUG_GYRO_CALIBRATION_VALUE, lrintf(stdDev));
             }
 
-            DEBUG_SET(DEBUG_GYRO_CALIBRATION, axis, stddev);
+            DEBUG_SET(DEBUG_GYRO_CALIBRATION, axis, stdDev);
 
             // check deviation and startover in case the model was moved
-            if (gyroMovementCalibrationThreshold && stddev > gyroMovementCalibrationThreshold) {
+            if (gyroMovementCalibrationThreshold && stdDev > gyroMovementCalibrationThreshold) {
                 calFailed = true;
             } else {
                 // please take care with exotic boardalignment !!

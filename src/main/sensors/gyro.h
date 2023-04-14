@@ -62,7 +62,7 @@ typedef union gyroLowpassFilter_u {
 
 typedef struct gyroCalibration_s {
     float sum[XYZ_AXIS_COUNT];
-    stdev_t var[XYZ_AXIS_COUNT];
+    variance_t var[XYZ_AXIS_COUNT];
     int32_t cyclesRemaining;
 } gyroCalibration_t;
 
