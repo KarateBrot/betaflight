@@ -170,7 +170,7 @@ void imuConfigure(uint16_t throttle_correction_angle, uint8_t throttle_correctio
     imuRuntimeConfig.dcm_kp = imuConfig()->dcm_kp / 10000.0f;
     imuRuntimeConfig.dcm_ki = imuConfig()->dcm_ki / 10000.0f;
 
-    smallAngleCosZ = cos_approx(degreesToRadians(imuConfig()->small_angle));
+    smallAngleCosZ = cos_approx(DEGREES_TO_RADIANS(imuConfig()->small_angle));
 
     throttleAngleScale = calculateThrottleAngleScale(throttle_correction_angle);
 
