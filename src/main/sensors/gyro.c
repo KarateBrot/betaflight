@@ -131,6 +131,7 @@ void pgResetFn_gyroConfig(gyroConfig_t *gyroConfig)
     gyroConfig->gyro_lpf1_dyn_expo = 5;
     gyroConfig->simplified_gyro_filter = true;
     gyroConfig->simplified_gyro_filter_multiplier = SIMPLIFIED_TUNING_DEFAULT;
+    gyroConfig->gyro_aaf_cutoff = 50;  // Percentage of the PID nyquist frequency
 }
 
 bool isGyroSensorCalibrationComplete(const gyroSensor_t *gyroSensor)
@@ -438,20 +439,14 @@ FAST_CODE void gyroUpdate(void)
             gyro.gyroADC[Z] = ((gyro.gyroSensor1.gyroDev.gyroADC[Z] * gyro.gyroSensor1.gyroDev.scale) + (gyro.gyroSensor2.gyroDev.gyroADC[Z] * gyro.gyroSensor2.gyroDev.scale)) / 2.0f;
         }
         break;
-#endif
+#endif // USE_MULTI_GYRO
     }
 
-    if (gyro.downsampleFilterEnabled) {
-        // using gyro lowpass 2 filter for downsampling
-        gyro.sampleSum[X] = gyro.lowpass2FilterApplyFn((filter_t *)&gyro.lowpass2Filter[X], gyro.gyroADC[X]);
-        gyro.sampleSum[Y] = gyro.lowpass2FilterApplyFn((filter_t *)&gyro.lowpass2Filter[Y], gyro.gyroADC[Y]);
-        gyro.sampleSum[Z] = gyro.lowpass2FilterApplyFn((filter_t *)&gyro.lowpass2Filter[Z], gyro.gyroADC[Z]);
-    } else {
-        // using simple averaging for downsampling
-        gyro.sampleSum[X] += gyro.gyroADC[X];
-        gyro.sampleSum[Y] += gyro.gyroADC[Y];
-        gyro.sampleSum[Z] += gyro.gyroADC[Z];
-        gyro.sampleCount++;
+    // AAF for downsampling from gyro looprate to PID looprate
+    if (gyro.aaFilterEnabled) {
+        biquadFilterApplyDF1(&gyro.aaFilter[X], gyro.gyroADC[X]);
+        biquadFilterApplyDF1(&gyro.aaFilter[Y], gyro.gyroADC[Y]);
+        biquadFilterApplyDF1(&gyro.aaFilter[Z], gyro.gyroADC[Z]);
     }
 }
 

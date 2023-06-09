@@ -136,7 +136,21 @@ static void gyroInitFilterNotch2(uint16_t notchHz, uint16_t notchCutoffHz)
     }
 }
 
-static bool gyroInitLowpassFilterLpf(int slot, int type, uint16_t lpfHz, uint32_t looptime)
+static bool gyroInitAaf(uint32_t looptimeUs)
+{
+    // Set AAF bandwidth to 1/2 of the downsampled nyquist limit (at default settings)
+    const float pidNyquistHz = 1e6f / gyro.targetLooptime / 2.0f;
+    const float cutoffHz = pidNyquistHz * gyroConfig()->gyro_aaf_cutoff / 100.0f;
+
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        biquadFilterInitLPF(&gyro.aaFilter[axis], cutoffHz, looptimeUs);  // AAF runs at native gyro looprate
+    }
+
+    // Enable AAF, if the gyro signal gets downsampled and the AAF cutoff is not zero
+    return pidConfig()->pid_process_denom > 1 && gyroConfig()->gyro_aaf_cutoff;
+}
+
+static void gyroInitLowpassFilterLpf(int slot, int type, uint16_t lpfHz, uint32_t looptime)
 {
     filterApplyFnPtr *lowpassFilterApplyFn;
     gyroLowpassFilter_t *lowpassFilter = NULL;
@@ -153,10 +167,8 @@ static bool gyroInitLowpassFilterLpf(int slot, int type, uint16_t lpfHz, uint32_
         break;
 
     default:
-        return false;
+        return;
     }
-
-    bool ret = false;
 
     // Establish some common constants
     const uint32_t gyroFrequencyNyquist = 1000000 / 2 / looptime;
@@ -177,7 +189,6 @@ static bool gyroInitLowpassFilterLpf(int slot, int type, uint16_t lpfHz, uint32_
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 pt1FilterInit(&lowpassFilter[axis].pt1FilterState, gain);
             }
-            ret = true;
             break;
         case FILTER_BIQUAD:
             if (lpfHz <= gyroFrequencyNyquist) {
@@ -189,7 +200,6 @@ static bool gyroInitLowpassFilterLpf(int slot, int type, uint16_t lpfHz, uint32_
                 for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                     biquadFilterInitLPF(&lowpassFilter[axis].biquadFilterState, lpfHz, looptime);
                 }
-                ret = true;
             }
             break;
         case FILTER_PT2:
@@ -197,18 +207,15 @@ static bool gyroInitLowpassFilterLpf(int slot, int type, uint16_t lpfHz, uint32_
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 pt2FilterInit(&lowpassFilter[axis].pt2FilterState, gain);
             }
-            ret = true;
             break;
         case FILTER_PT3:
             *lowpassFilterApplyFn = (filterApplyFnPtr) pt3FilterApply;
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 pt3FilterInit(&lowpassFilter[axis].pt3FilterState, gain);
             }
-            ret = true;
             break;
         }
     }
-    return ret;
 }
 
 #ifdef USE_DYN_LPF
@@ -243,6 +250,8 @@ static void dynLpfFilterInit(void)
 
 void gyroInitFilters(void)
 {
+    gyro.aaFilterEnabled = gyroInitAaf(gyro.sampleLooptime);
+
     uint16_t gyro_lpf1_init_hz = gyroConfig()->gyro_lpf1_static_hz;
 
 #ifdef USE_DYN_LPF
@@ -258,18 +267,20 @@ void gyroInitFilters(void)
       gyro.targetLooptime
     );
 
-    gyro.downsampleFilterEnabled = gyroInitLowpassFilterLpf(
+    gyroInitLowpassFilterLpf(
       FILTER_LPF2,
       gyroConfig()->gyro_lpf2_type,
       gyroConfig()->gyro_lpf2_static_hz,
-      gyro.sampleLooptime
+      gyro.targetLooptime
     );
 
     gyroInitFilterNotch1(gyroConfig()->gyro_soft_notch_hz_1, gyroConfig()->gyro_soft_notch_cutoff_1);
     gyroInitFilterNotch2(gyroConfig()->gyro_soft_notch_hz_2, gyroConfig()->gyro_soft_notch_cutoff_2);
+
 #ifdef USE_DYN_LPF
     dynLpfFilterInit();
 #endif
+
 #ifdef USE_DYN_NOTCH_FILTER
     dynNotchInit(dynNotchConfig(), gyro.targetLooptime);
 #endif
@@ -711,8 +722,8 @@ void gyroSetTargetLooptime(uint8_t pidDenom)
 {
     activePidLoopDenom = pidDenom;
     if (gyro.sampleRateHz) {
-        gyro.sampleLooptime = 1e6 / gyro.sampleRateHz;
-        gyro.targetLooptime = activePidLoopDenom * 1e6 / gyro.sampleRateHz;
+        gyro.sampleLooptime = 1e6f / gyro.sampleRateHz;
+        gyro.targetLooptime = activePidLoopDenom * 1e6f / gyro.sampleRateHz;
     } else {
         gyro.sampleLooptime = 0;
         gyro.targetLooptime = 0;

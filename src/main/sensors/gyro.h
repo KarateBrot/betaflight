@@ -86,9 +86,9 @@ typedef struct gyro_s {
     float scale;
     float gyroADC[XYZ_AXIS_COUNT];     // aligned, calibrated, scaled, but unfiltered data from the sensor(s)
     float gyroADCf[XYZ_AXIS_COUNT];    // filtered gyro data
-    uint8_t sampleCount;               // gyro sensor sample counter
-    float sampleSum[XYZ_AXIS_COUNT];   // summed samples used for downsampling
-    bool downsampleFilterEnabled;      // if true then downsample using gyro lowpass 2, otherwise use averaging
+
+    biquadFilter_t aaFilter[XYZ_AXIS_COUNT]; // Anti-Alias Filter for downsampling from gyro looprate to PID looprate
+    bool aaFilterEnabled;
 
     gyroSensor_t gyroSensor1;
 #ifdef USE_MULTI_GYRO
@@ -169,6 +169,8 @@ typedef struct gyroConfig_s {
     uint8_t gyro_hardware_lpf;                // gyro DLPF setting
     uint8_t gyro_high_fsr;
     uint8_t gyro_to_use;
+
+    uint8_t gyro_aaf_cutoff;                  // Normalized cutoff frequency for the gyro anti-alias filter (percentage of the PID nyquist frequency)
 
     uint16_t gyro_lpf1_static_hz;
     uint16_t gyro_lpf2_static_hz;

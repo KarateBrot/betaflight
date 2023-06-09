@@ -33,17 +33,11 @@ static FAST_CODE void GYRO_FILTER_FUNCTION_NAME(void)
         // DEBUG_GYRO_SAMPLE(0) Record the pre-downsample value for the selected debug axis (same as DEBUG_GYRO_SCALED)
         GYRO_FILTER_AXIS_DEBUG_SET(axis, DEBUG_GYRO_SAMPLE, 0, lrintf(gyro.gyroADC[axis]));
 
-        // downsample the individual gyro samples
-        float gyroADCf = 0;
-        if (gyro.downsampleFilterEnabled) {
-            // using gyro lowpass 2 filter for downsampling
-            gyroADCf = gyro.sampleSum[axis];
+        float gyroADCf;
+        if (gyro.aaFilterEnabled) {
+            gyroADCf = gyro.aaFilter[axis].y1;  // Get newest anti-aliased gyro value (decimation)
         } else {
-            // using simple average for downsampling
-            if (gyro.sampleCount) {
-                gyroADCf = gyro.sampleSum[axis] / gyro.sampleCount;
-            }
-            gyro.sampleSum[axis] = 0;
+            gyroADCf = gyro.gyroADC[axis];  // Get unfiltered gyro value
         }
 
         // DEBUG_GYRO_SAMPLE(1) Record the post-downsample value for the selected debug axis
@@ -60,6 +54,7 @@ static FAST_CODE void GYRO_FILTER_FUNCTION_NAME(void)
         gyroADCf = gyro.notchFilter1ApplyFn((filter_t *)&gyro.notchFilter1[axis], gyroADCf);
         gyroADCf = gyro.notchFilter2ApplyFn((filter_t *)&gyro.notchFilter2[axis], gyroADCf);
         gyroADCf = gyro.lowpassFilterApplyFn((filter_t *)&gyro.lowpassFilter[axis], gyroADCf);
+        gyroADCf = gyro.lowpass2FilterApplyFn((filter_t *)&gyro.lowpass2Filter[axis], gyroADCf);
 
         // DEBUG_GYRO_SAMPLE(3) Record the post-static notch and lowpass filter value for the selected debug axis
         GYRO_FILTER_AXIS_DEBUG_SET(axis, DEBUG_GYRO_SAMPLE, 3, lrintf(gyroADCf));
@@ -87,5 +82,4 @@ static FAST_CODE void GYRO_FILTER_FUNCTION_NAME(void)
 
         gyro.gyroADCf[axis] = gyroADCf;
     }
-    gyro.sampleCount = 0;
 }
