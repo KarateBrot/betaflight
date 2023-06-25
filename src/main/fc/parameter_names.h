@@ -30,6 +30,7 @@
 #define PARAM_NAME_DYN_NOTCH_COUNT "dyn_notch_count"
 #define PARAM_NAME_DYN_NOTCH_Q "dyn_notch_q"
 #define PARAM_NAME_DYN_NOTCH_MIN_HZ "dyn_notch_min_hz"
+#define PARAM_NAME_DYN_NOTCH_MODE "dyn_notch_mode"
 #define PARAM_NAME_ACC_HARDWARE "acc_hardware"
 #define PARAM_NAME_ACC_LPF_HZ "acc_lpf_hz"
 #define PARAM_NAME_MAG_HARDWARE "mag_hardware"

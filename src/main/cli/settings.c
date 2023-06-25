@@ -529,6 +529,12 @@ static const char* const lookupTableSwitchMode[] = {
 };
 #endif
 
+#ifdef USE_DYN_NOTCH_FILTER
+static const char * const lookupTableDynNotchMode[] = {
+    "GYRO", "DTERM"
+};
+#endif
+
 #define LOOKUP_TABLE_ENTRY(name) { name, ARRAYLEN(name) }
 
 const lookupTableEntry_t lookupTables[] = {
@@ -654,6 +660,9 @@ const lookupTableEntry_t lookupTables[] = {
     LOOKUP_TABLE_ENTRY(lookupTableFreqDomain),
     LOOKUP_TABLE_ENTRY(lookupTableSwitchMode),
 #endif
+#ifdef USE_DYN_NOTCH_FILTER
+    LOOKUP_TABLE_ENTRY(lookupTableDynNotchMode),
+#endif
 };
 
 #undef LOOKUP_TABLE_ENTRY
@@ -696,6 +705,7 @@ const clivalue_t valueTable[] = {
     { PARAM_NAME_DYN_NOTCH_Q,       VAR_UINT16  | MASTER_VALUE, .config.minmaxUnsigned = { 1, 1000 }, PG_DYN_NOTCH_CONFIG, offsetof(dynNotchConfig_t, dyn_notch_q) },
     { PARAM_NAME_DYN_NOTCH_MIN_HZ,  VAR_UINT16  | MASTER_VALUE, .config.minmaxUnsigned = { 20, 250 }, PG_DYN_NOTCH_CONFIG, offsetof(dynNotchConfig_t, dyn_notch_min_hz) },
     { PARAM_NAME_DYN_NOTCH_MAX_HZ,  VAR_UINT16  | MASTER_VALUE, .config.minmaxUnsigned = { 200, 1000 }, PG_DYN_NOTCH_CONFIG, offsetof(dynNotchConfig_t, dyn_notch_max_hz) },
+    { PARAM_NAME_DYN_NOTCH_MODE,    VAR_UINT8   | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_DYN_NOTCH_MODE }, PG_DYN_NOTCH_CONFIG, offsetof(dynNotchConfig_t, dyn_notch_mode) },
 #endif
 #ifdef USE_DYN_LPF
     { "gyro_lpf1_dyn_min_hz",       VAR_UINT16 | MASTER_VALUE, .config.minmaxUnsigned = { 0, DYN_LPF_MAX_HZ }, PG_GYRO_CONFIG, offsetof(gyroConfig_t, gyro_lpf1_dyn_min_hz) },

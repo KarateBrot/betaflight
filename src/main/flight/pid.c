@@ -870,6 +870,12 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
             DEBUG_SET(DEBUG_D_LPF, axis, lrintf(delta)); // debug d_lpf 2 and 3 used for pre-TPA D
         }
 
+#ifdef USE_DYN_NOTCH_FILTER
+        if (isDynNotchActive() && isDynNotchMode(DYN_NOTCH_MODE_DTERM)) {
+            gyroRateDterm[axis] = dynNotchFilter(axis, gyroRateDterm[axis]);  // apply dynamic notch filter
+        }
+#endif
+
         gyroRateDterm[axis] = pidRuntime.dtermNotchApplyFn((filter_t *) &pidRuntime.dtermNotch[axis], gyroRateDterm[axis]);
         gyroRateDterm[axis] = pidRuntime.dtermLowpassApplyFn((filter_t *) &pidRuntime.dtermLowpass[axis], gyroRateDterm[axis]);
         gyroRateDterm[axis] = pidRuntime.dtermLowpass2ApplyFn((filter_t *) &pidRuntime.dtermLowpass2[axis], gyroRateDterm[axis]);

@@ -120,6 +120,7 @@ typedef struct dynNotch_s {
     float minHz;
     float maxHz;
     int count;
+    int mode;
 
     int maxCenterFreq;
     float centerFreq[XYZ_AXIS_COUNT][DYN_NOTCH_COUNT_MAX];
@@ -172,6 +173,7 @@ void dynNotchInit(const dynNotchConfig_t *config, const timeUs_t targetLooptimeU
     dynNotch.maxHz = MAX(dynNotch.minHz, config->dyn_notch_max_hz);
     dynNotch.maxHz = MIN(dynNotch.maxHz, nyquistHz); // Ensure to not go above the nyquist limit
     dynNotch.count = config->dyn_notch_count;
+    dynNotch.mode = config->dyn_notch_mode;
     dynNotch.looptimeUs = targetLooptimeUs;
     dynNotch.maxCenterFreq = 0;
 
@@ -415,6 +417,11 @@ FAST_CODE float dynNotchFilter(const int axis, float value)
 bool isDynNotchActive(void)
 {
     return dynNotch.count > 0;
+}
+
+bool isDynNotchMode(const int mode)
+{
+    return dynNotch.mode == mode;
 }
 
 int getMaxFFT(void)

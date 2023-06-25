@@ -145,6 +145,9 @@ typedef enum {
     TABLE_FREQ_DOMAIN,
     TABLE_SWITCH_MODE,
 #endif
+#ifdef USE_DYN_NOTCH_FILTER
+    TABLE_DYN_NOTCH_MODE,
+#endif
     LOOKUP_TABLE_COUNT
 } lookupTableIndex_e;
 

@@ -24,13 +24,18 @@
 
 #include "pg/pg.h"
 
-typedef struct dynNotchConfig_s
-{
+typedef enum {
+    DYN_NOTCH_MODE_GYRO = 0,
+    DYN_NOTCH_MODE_DTERM,
+    DYN_NOTCH_MODE_COUNT
+} dynNotchMode_e;
+
+typedef struct dynNotchConfig_s {
     uint16_t dyn_notch_min_hz;
     uint16_t dyn_notch_max_hz;
     uint16_t dyn_notch_q;
     uint8_t  dyn_notch_count;
-
+    uint8_t  dyn_notch_mode;
 } dynNotchConfig_t;
 
 PG_DECLARE(dynNotchConfig_t, dynNotchConfig);

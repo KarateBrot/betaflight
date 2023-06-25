@@ -33,5 +33,6 @@ void dynNotchPush(const int axis, const float sample);
 void dynNotchUpdate(void);
 float dynNotchFilter(const int axis, float value);
 bool isDynNotchActive(void);
+bool isDynNotchMode(const int mode);
 int getMaxFFT(void);
 void resetMaxFFT(void);
