@@ -76,6 +76,7 @@
 #include "io/gps.h"
 #include "io/serial.h"
 
+#include "pg/accelerometer.h"
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
 #include "pg/motor.h"

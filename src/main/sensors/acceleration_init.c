@@ -30,7 +30,6 @@
 #include "build/debug.h"
 
 #include "common/axis.h"
-#include "common/filter.h"
 #include "common/utils.h"
 
 #include "config/config_reset.h"
@@ -76,6 +75,7 @@
 
 #include "io/beeper.h"
 
+#include "pg/accelerometer.h"
 #include "pg/gyrodev.h"
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
@@ -111,6 +111,16 @@ void resetRollAndPitchTrims(rollAndPitchTrims_t *rollAndPitchTrims)
     );
 }
 
+void resetFlightDynamicsTrims(flightDynamicsTrims_t *accZero)
+{
+    RESET_CONFIG_2(flightDynamicsTrims_t, accZero,
+        .values.roll = 0,
+        .values.pitch = 0,
+        .values.yaw = 0,
+        .values.calibrationCompleted = 0,
+    );
+}
+
 static void setConfigCalibrationCompleted(void)
 {
     accelerometerConfigMutable()->accZero.values.calibrationCompleted = 1;
@@ -129,27 +139,6 @@ void accResetRollAndPitchTrims(void)
 {
     resetRollAndPitchTrims(&accelerometerConfigMutable()->accelerometerTrims);
 }
-
-static void resetFlightDynamicsTrims(flightDynamicsTrims_t *accZero)
-{
-    accZero->values.roll = 0;
-    accZero->values.pitch = 0;
-    accZero->values.yaw = 0;
-    accZero->values.calibrationCompleted = 0;
-}
-
-void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
-{
-    RESET_CONFIG_2(accelerometerConfig_t, instance,
-        .acc_lpf_hz = 25, // ATTITUDE/IMU runs at 100Hz (acro) or 500Hz (level modes) so we need to set 50 Hz (or lower) to avoid aliasing
-        .acc_hardware = ACC_DEFAULT,
-        .acc_high_fsr = false,
-    );
-    resetRollAndPitchTrims(&instance->accelerometerTrims);
-    resetFlightDynamicsTrims(&instance->accZero);
-}
-
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 2);
 
 extern uint16_t InflightcalibratingA;
 extern bool AccInflightCalibrationMeasurementDone;

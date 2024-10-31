@@ -118,6 +118,7 @@
 #include "osd/osd_elements.h"
 #include "osd/osd_warnings.h"
 
+#include "pg/accelerometer.h"
 #include "pg/beeper.h"
 #include "pg/board.h"
 #include "pg/dyn_notch.h"

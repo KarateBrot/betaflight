@@ -21,8 +21,9 @@
 #pragma once
 
 #include "common/time.h"
-#include "pg/pg.h"
+
 #include "drivers/accgyro/accgyro.h"
+
 #include "sensors/sensors.h"
 
 // Type of accelerometer used/detected
@@ -72,23 +73,12 @@ typedef union rollAndPitchTrims_u {
     rollAndPitchTrims_t_def values;
 } rollAndPitchTrims_t;
 
-#if defined(USE_ACC)
-typedef struct accelerometerConfig_s {
-    uint16_t acc_lpf_hz;                    // cutoff frequency for the low pass filter used on the acc z-axis for althold in Hz
-    uint8_t acc_hardware;                   // Which acc hardware to use on boards with more than one device
-    bool acc_high_fsr;
-    flightDynamicsTrims_t accZero;
-    rollAndPitchTrims_t accelerometerTrims;
-} accelerometerConfig_t;
-
-PG_DECLARE(accelerometerConfig_t, accelerometerConfig);
-#endif
-
 bool accInit(uint16_t accSampleRateHz);
 bool accIsCalibrationComplete(void);
 bool accHasBeenCalibrated(void);
 void accStartCalibration(void);
 void resetRollAndPitchTrims(rollAndPitchTrims_t *rollAndPitchTrims);
+void resetFlightDynamicsTrims(flightDynamicsTrims_t *accZero);
 void accUpdate(timeUs_t currentTimeUs);
 union flightDynamicsTrims_u;
 void setAccelerationTrims(union flightDynamicsTrims_u *accelerationTrimsToUse);

@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "platform.h"
+#include "common/filter.h"
 
 #include "sensors/acceleration.h"
 

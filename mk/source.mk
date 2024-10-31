@@ -1,4 +1,5 @@
 PG_SRC = \
+            pg/accelerometer.c \
             pg/adc.c \
             pg/alt_hold.c \
             pg/autopilot.c \

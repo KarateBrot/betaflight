@@ -79,6 +79,7 @@
 
 #include "osd/osd.h"
 
+#include "pg/accelerometer.h"
 #include "pg/adc.h"
 #include "pg/beeper.h"
 #include "pg/beeper_dev.h"

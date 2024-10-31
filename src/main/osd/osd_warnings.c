@@ -57,6 +57,8 @@
 #include "osd/osd_elements.h"
 #include "osd/osd_warnings.h"
 
+#include "pg/accelerometer.h"
+
 #include "rx/rx.h"
 
 #include "sensors/acceleration.h"

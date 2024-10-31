@@ -21,7 +21,7 @@
 #pragma once
 
 #include "common/axis.h"
-#include "common/maths.h"
+#include "common/sensor_alignment.h"
 #include "common/vector.h"
 
 #include "pg/pg.h"

@@ -34,6 +34,8 @@
 
 #include "config/feature.h"
 
+#include "pg/accelerometer.h"
+
 #include "sensors/acceleration_init.h"
 #include "sensors/boardalignment.h"
 
