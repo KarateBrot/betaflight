@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
 #include "pg/pg.h"
 
 
@@ -149,6 +150,7 @@ typedef enum {
 #ifdef USE_WING
     TABLE_TPA_SPEED_TYPE,
 #endif
+    TABLE_LOADCELL_HARDWARE,
     LOOKUP_TABLE_COUNT
 } lookupTableIndex_e;
 
@@ -262,6 +264,8 @@ extern const char * const lookupTableMagHardware[];
 //extern const uint8_t lookupTableMagHardwareEntryCount;
 
 extern const char * const lookupTableRangefinderHardware[];
+
+extern const char * const lookupTableLoadcellHardware[];
 
 extern const char * const lookupTableLedstripColors[];
 

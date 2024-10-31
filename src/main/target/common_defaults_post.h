@@ -134,6 +134,13 @@
 #define MAG_INT_EXTI            NONE
 #endif
 
+// Loadcell
+#if defined(USE_LOADCELL)
+#ifndef LOADCELL_I2C_INSTANCE
+#define LOADCELL_I2C_INSTANCE   I2C_DEVICE
+#endif
+#endif
+
 // Baro
 #if defined(USE_BARO)
 #ifndef BARO_SPI_INSTANCE

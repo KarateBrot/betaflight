@@ -18,19 +18,30 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "platform.h"
 
-#include <stdbool.h>
-#include <stdint.h>
+#ifdef USE_LOADCELL
 
-#include "drivers/bus.h"
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
 
-bool i2cBusWriteRegister(const extDevice_t *dev, uint8_t reg, uint8_t data);
-bool i2cBusWriteRegisterStart(const extDevice_t *dev, uint8_t reg, uint8_t data);
-bool i2cBusReadRegisterBuffer(const extDevice_t *dev, uint8_t reg, uint8_t *data, uint8_t length);
-uint8_t i2cBusReadRegister(const extDevice_t *dev, uint8_t reg);
-bool i2cBusReadRegisterBufferStart(const extDevice_t *dev, uint8_t reg, uint8_t *data, uint8_t length);
-bool i2cBusBusy(const extDevice_t *dev, bool *error);
-// Associate a device with an I2C bus
-bool i2cBusSetInstance(const extDevice_t *dev, uint32_t device);
-void i2cBusDeviceRegister(const extDevice_t *dev);
+#include "drivers/bus_i2c.h"
+#include "drivers/loadcell/loadcell.h"
+
+#include "loadcell.h"
+
+#ifndef LOADCELL_I2C_ADDRESS
+#define LOADCELL_I2C_ADDRESS 0
+#endif
+
+PG_REGISTER_WITH_RESET_TEMPLATE(loadcellConfig_t, loadcellConfig, PG_LOADCELL_CONFIG, 0);
+
+PG_RESET_TEMPLATE(loadcellConfig_t, loadcellConfig,
+    .loadcell_hardware = LOADCELL_NONE,
+    .loadcell_i2c_device = I2C_DEV_TO_CFG(LOADCELL_I2C_INSTANCE),
+    .loadcell_i2c_address = LOADCELL_I2C_ADDRESS,
+    .loadcell_offset = 0,
+    .loadcell_scale = 0,
+);
+
+#endif // USE_LOADCELL

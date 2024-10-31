@@ -182,6 +182,9 @@ typedef enum {
 #ifdef USE_RC_STATS
     TASK_RC_STATS,
 #endif
+#ifdef USE_LOADCELL
+    TASK_LOADCELL,
+#endif
 
     /* Count of real tasks */
     TASK_COUNT,

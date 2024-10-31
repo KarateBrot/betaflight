@@ -94,6 +94,7 @@
 #include "sensors/compass.h"
 #include "sensors/esc_sensor.h"
 #include "sensors/gyro.h"
+#include "sensors/loadcell.h"
 #include "sensors/sensors.h"
 #include "sensors/rangefinder.h"
 
@@ -277,6 +278,17 @@ static void taskUpdateMag(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef USE_LOADCELL
+static void taskUpdateLoadcell(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    if (sensors(SENSOR_LOADCELL)) {
+        loadcellUpdate();
+    }
+}
+#endif // USE_LOADCELL
+
 #if defined(USE_BARO) || defined(USE_GPS)
 static void taskCalculateAltitude(timeUs_t currentTimeUs)
 {
@@ -452,6 +464,9 @@ task_attribute_t task_attributes[TASK_COUNT] = {
     [TASK_RC_STATS] = DEFINE_TASK("RC_STATS", NULL, NULL, rcStatsUpdate, TASK_PERIOD_HZ(100), TASK_PRIORITY_LOW),
 #endif
 
+#ifdef USE_LOADCELL
+    [TASK_LOADCELL] = DEFINE_TASK("LOADCELL", NULL, NULL, taskUpdateLoadcell, TASK_PERIOD_HZ(100), TASK_PRIORITY_LOW),
+#endif
 };
 
 task_t *getTask(unsigned taskId)

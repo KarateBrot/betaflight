@@ -123,6 +123,12 @@
 
 #endif // END MAG HW defines
 
+#if defined(USE_LOADCELL)
+#ifndef USE_LOADCELL_HX711
+#define USE_LOADCELL_HX711
+#endif
+#endif // USE_LOADCELL
+
 #if defined(USE_RX_CC2500)
 
 #if !defined(USE_RX_SPI)

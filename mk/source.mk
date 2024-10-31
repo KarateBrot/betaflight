@@ -16,6 +16,7 @@ PG_SRC = \
             pg/gps_lap_timer.c \
             pg/gps_rescue.c \
             pg/gyrodev.c \
+            pg/loadcell.c \
             pg/max7456.c \
             pg/mco.c \
             pg/motor.c \
@@ -205,6 +206,7 @@ COMMON_SRC = \
             sensors/gyro.c \
             sensors/gyro_init.c \
             sensors/initialisation.c \
+            sensors/loadcell.c \
             blackbox/blackbox.c \
             blackbox/blackbox_encoding.c \
             blackbox/blackbox_io.c \
@@ -317,6 +319,7 @@ COMMON_SRC += \
             drivers/compass/compass_mpu925x_ak8963.c \
             drivers/compass/compass_qmc5883l.c \
             drivers/compass/compass_virtual.c \
+            drivers/loadcell/loadcell_hx711.c \
             drivers/max7456.c \
             drivers/vtx_rtc6705.c \
             drivers/vtx_rtc6705_soft_spi.c
@@ -492,6 +495,7 @@ SIZE_OPTIMISED_SRC := $(SIZE_OPTIMISED_SRC) \
             drivers/compass/compass_lis3mdl.c \
             drivers/compass/compass_ist8310.c \
             drivers/display_ug2864hsweg01.c \
+            drivers/loadcell/loadcell_hx711.c \
             drivers/inverter.c \
             drivers/light_ws2811strip.c \
             drivers/serial_escserial.c \

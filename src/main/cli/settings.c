@@ -88,6 +88,7 @@
 #include "pg/dyn_notch.h"
 #include "pg/flash.h"
 #include "pg/gyrodev.h"
+#include "pg/loadcell.h"
 #include "pg/max7456.h"
 #include "pg/mco.h"
 #include "pg/motor.h"
@@ -545,6 +546,10 @@ const char* const lookupTableTpaSpeedType[] = {
 };
 #endif
 
+const char * const lookupTableLoadcellHardware[] = {
+    "NONE", "HX711"
+};
+
 #define LOOKUP_TABLE_ENTRY(name) { name, ARRAYLEN(name) }
 
 const lookupTableEntry_t lookupTables[] = {
@@ -674,6 +679,7 @@ const lookupTableEntry_t lookupTables[] = {
 #ifdef USE_WING
     LOOKUP_TABLE_ENTRY(lookupTableTpaSpeedType),
 #endif
+    LOOKUP_TABLE_ENTRY(lookupTableLoadcellHardware),
 };
 
 #undef LOOKUP_TABLE_ENTRY
@@ -750,6 +756,15 @@ const clivalue_t valueTable[] = {
     { "mag_spi_device",             VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { 0, SPIDEV_COUNT }, PG_COMPASS_CONFIG, offsetof(compassConfig_t, mag_spi_device) },
     { PARAM_NAME_MAG_HARDWARE,      VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_MAG_HARDWARE }, PG_COMPASS_CONFIG, offsetof(compassConfig_t, mag_hardware) },
     { "mag_calibration",            VAR_INT16  | MASTER_VALUE | MODE_ARRAY, .config.array.length = XYZ_AXIS_COUNT, PG_COMPASS_CONFIG, offsetof(compassConfig_t, magZero.raw) },
+#endif
+
+// PG_LOADCELL_CONFIG
+#ifdef USE_LOADCELL
+    { "loadcell_hardware",          VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_LOADCELL_HARDWARE }, PG_LOADCELL_CONFIG, offsetof(loadcellConfig_t, loadcell_hardware) },
+    { "loadcell_i2c_device",        VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { 0, I2CDEV_COUNT }, PG_LOADCELL_CONFIG, offsetof(loadcellConfig_t, loadcell_i2c_device) },
+    { "loadcell_i2c_address",       VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { 0, I2C_ADDR7_MAX }, PG_LOADCELL_CONFIG, offsetof(loadcellConfig_t, loadcell_i2c_address) },
+    { "loadcell_offset",            VAR_INT16  | HARDWARE_VALUE, .config.minmax = { INT16_MIN, INT16_MAX }, PG_LOADCELL_CONFIG, offsetof(loadcellConfig_t, loadcell_offset) },
+    { "loadcell_scale",             VAR_INT16  | HARDWARE_VALUE, .config.minmax = { INT16_MIN, INT16_MAX }, PG_LOADCELL_CONFIG, offsetof(loadcellConfig_t, loadcell_scale) },
 #endif
 
 // PG_BAROMETER_CONFIG

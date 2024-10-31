@@ -43,13 +43,14 @@
 #include "sensors/gyro.h"
 #include "sensors/gyro_init.h"
 #include "sensors/initialisation.h"
+#include "sensors/loadcell.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
 
 
 // requestedSensors is not actually used
-uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE };
-uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE };
+uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, LOADCELL_NONE };
+uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, LOADCELL_NONE };
 
 void sensorsPreInit(void)
 {
@@ -87,6 +88,10 @@ bool sensorsAutodetect(void)
 
 #ifdef USE_RANGEFINDER
     rangefinderInit();
+#endif
+
+#ifdef USE_LOADCELL
+    loadcellInit(loadcellConfig());
 #endif
 
 #ifdef USE_ADC_INTERNAL
